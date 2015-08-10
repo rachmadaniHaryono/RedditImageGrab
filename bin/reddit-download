@@ -1,0 +1,11 @@
+#!/usr/bin/python
+
+# -*- coding: utf-8 -*-
+import sys
+
+from redditdownload import redditdownload
+
+if __name__ == '__main__':
+    sys.exit(redditdownload.main())
+    
+ 

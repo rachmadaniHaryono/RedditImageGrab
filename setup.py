@@ -13,6 +13,7 @@ setup(name='RedditImageGrab',
       long_description=long_description,
       packages=find_packages(),
       package_data = {'': ['*.md']}, 
+      scripts=['bin/reddit-download'],
 
       # metadata for upload to PyPI
       author='HoverHell',
