@@ -11,20 +11,21 @@ from httplib import InvalidURL
 from argparse import ArgumentParser
 from os.path import (
     exists as pathexists, join as pathjoin, basename as pathbasename,
-    splitext as pathsplitext, basename as pathbasename)
+    splitext as pathsplitext)
 from os import mkdir, getcwd
 import time
 from HTMLParser import HTMLParser
-from .gfycat import gfycat
-from .reddit import getitems
 
+from gfycat import gfycat
+from reddit import getitems
 
 _log = logging.getLogger('redditdownload')
 
 
 def request(url, *ar, **kwa):
+    """request function."""
     _retries = kwa.pop('_retries', 4)
-    _retry_pause = kwa.pop('_retry_pause', 0)
+    # _retry_pause = kwa.pop('_retry_pause', 0)
     res = None
     for _try in xrange(_retries):
         try:
@@ -41,19 +42,21 @@ def request(url, *ar, **kwa):
 
 # Used to extract src from Deviantart URLs
 class DeviantHTMLParser(HTMLParser):
-    """
-    Parses the DeviantArt Web page in search for a link to the main image on page
+    """Parses the DeviantArt Web page in search for a link to the main image on page.
 
     Attributes:
         IMAGE  - Direct link to image
     """
+
     def __init__(self):
+        """init function."""
         self.reset()
         self.IMAGE = None
 
-    # Handles HTML Elements eg <img src="//blank.jpg" class="picture"/> ->
-    #      tag => "img", attrs => [("src", "//blank.jpg"), ("class", "picture")]
     def handle_starttag(self, tag, attrs):
+        """handle start tag for html parser."""
+        # Handles HTML Elements eg <img src="//blank.jpg" class="picture"/> ->
+        #      tag => "img", attrs => [("src", "//blank.jpg"), ("class", "picture")]
         # Only interested in img when we dont have the url
         # first search for download button
         if tag == "a" and self.IMAGE is None:
@@ -61,27 +64,22 @@ class DeviantHTMLParser(HTMLParser):
             # download link class content of from a-tag class
             download_link_class = 'dev-page-button dev-page-button-with-text dev-page-download'
             # use the same method like below
-            for classAttr in attrs:
-                if classAttr[0] == "class":
-                    # Incase page doesnt have a download button
-                    if download_link_class in classAttr[1]:
-                        for srcAttr in attrs:
-                            if srcAttr[0] == "href":
-                                self.IMAGE = srcAttr[1]
+            attrs = [classAttr for classAttr in attrs
+                     if classAttr[0] == "class" and download_link_class in classAttr[1]]
+            for srcAttr in attrs:
+                if srcAttr[0] == "href":
+                    self.IMAGE = srcAttr[1]
 
         # if download button not found get original image
         elif (tag == "a" or tag == "img") and self.IMAGE is None:
             # Check attributes for class
-            for classAttr in attrs:
-                # Check class is dev-content-normal
-                if classAttr[0] == "class":
-                    # Incase page doesnt have a download button
-                    if classAttr[1] == "dev-content-normal":
-                        for srcAttr in attrs:
-                            if srcAttr[0] == "src":
-                                self.IMAGE = srcAttr[1]
-                    else:
-                        return
+            # Check class is dev-content-normal
+            # Incase page doesnt have a download button
+            attrs = [classAttr for classAttr in attrs
+                     if classAttr[0] == "class" and classAttr[1] == "dev-content-normal"]
+            for srcAttr in attrs:
+                if srcAttr[0] == "src":
+                    self.IMAGE = srcAttr[1]
 
 
 # '.wrong_type_pages.jsl'
@@ -98,17 +96,15 @@ def _log_wrongtype(_logfile=_WRONGDATA_LOGFILE, **kwa):
 
 
 class WrongFileTypeException(Exception):
-    """Exception raised when incorrect content-type discovered"""
+    """Exception raised when incorrect content-type discovered."""
 
 
 class FileExistsException(Exception):
-    """Exception raised when file exists in specified directory"""
+    """Exception raised when file exists in specified directory."""
 
 
 def extract_imgur_album_urls(album_url):
-    """
-    Given an imgur album URL, attempt to extract the images within that
-    album
+    """Given an imgur album URL, attempt to extract the images within that album.
 
     Returns:
         List of qualified imgur URLs
@@ -143,8 +139,7 @@ def extract_imgur_album_urls(album_url):
 
 
 def download_from_url(url, dest_file):
-    """
-    Attempt to download file specified by url to 'dest_file'
+    """Attempt to download file specified by url to 'dest_file'.
 
     Raises:
         WrongFileTypeException
@@ -191,7 +186,8 @@ def download_from_url(url, dest_file):
 
 
 def process_imgur_url(url):
-    """
+    """function for imgur url.
+
     Given an imgur URL, determine if it's a direct link to an image or an
     album.  If the latter, attempt to determine all images within the album
 
@@ -232,7 +228,8 @@ def process_imgur_url(url):
 
 
 def process_deviant_url(url):
-    """
+    """function for deviantart.
+
     Given a DeviantArt URL, determine if it's a direct link to an image, or
     a standard DeviantArt Page. If the latter, attempt to acquire Direct link.
 
@@ -263,7 +260,8 @@ def process_deviant_url(url):
 
 
 def extract_urls(url):
-    """
+    """extract any media from url.
+
     Given an URL checks to see if its an imgur.com URL, handles imgur hosted
     images if present as single image or image album.
 
@@ -290,8 +288,9 @@ def extract_urls(url):
 
 
 def slugify(value):
-    """
-    Normalizes string, converts to lowercase, removes non-alpha characters,
+    """Normalize string.
+
+    converts to lowercase, removes non-alpha characters,
     and converts spaces to hyphens.
     """
     # taken from http://stackoverflow.com/a/295466
@@ -304,6 +303,7 @@ def slugify(value):
 
 
 def parse_args(args):
+    """function to process argument."""
     PARSER = ArgumentParser(description='Downloads files with specified extension'
                             'from the specified subreddit.')
     PARSER.add_argument('reddit', metavar='<subreddit>', help='Subreddit name.')
@@ -351,6 +351,7 @@ def parse_args(args):
 
 
 def parse_reddit_argument(reddit_args):
+    """print reddit argument better."""
     if '+' not in reddit_args:
         return 'Downloading images from "%s" subreddit' % (reddit_args)
     elif len('Downloading images from "%s" subreddit' % (reddit_args)) > 80:
@@ -362,6 +363,7 @@ def parse_reddit_argument(reddit_args):
 
 
 def main():
+    """main function."""
     ARGS = parse_args(sys.argv[1:])
 
     logging.basicConfig(level=logging.INFO)
@@ -508,7 +510,7 @@ def main():
                         DOWNLOADED += 1
                         FILECOUNT += 1
 
-                    except Exception,e:
+                    except Exception, e:
                         print '    %s' % str(e)
                         ERRORS += 1
 
