@@ -16,8 +16,10 @@ from os import mkdir, getcwd
 import time
 from HTMLParser import HTMLParser
 
-from gfycat import gfycat
-from reddit import getitems
+from .gfycat import gfycat
+from .reddit import getitems
+from . import redditupload
+
 
 _log = logging.getLogger('redditdownload')
 
@@ -156,6 +158,10 @@ def download_from_url(url, dest_file):
     if pathexists(dest_file):
         raise FileExistsException('URL [%s] already downloaded.' % url)
 
+    # use redditupload costum downloader if url match
+    if redditupload.match(url):
+        redditupload.download(url, dest_file)
+        return None
     response = request(url)
     info = response.info()
 
@@ -389,10 +395,14 @@ def main():
     start_time = None
     ITEM = None
 
+    sort_type = ARGS.sort_type
+    if sort_type:
+        sort_type = sort_type.lower()
+
     while not FINISHED:
         ITEMS = getitems(
             ARGS.reddit, multireddit=ARGS.multireddit, previd=LAST,
-            reddit_sort=ARGS.sort_type)
+            reddit_sort=sort_type)
 
         # measure time and set the program to wait 4 second between request
         # as per reddit api guidelines
