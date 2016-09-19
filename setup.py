@@ -64,18 +64,21 @@ setup_kwargs = dict(
     long_description=LONG_DESCRIPTION,
     # classifiers=[],
     # keywords='...,...',
+
     author='HoverHell',
     author_email='hoverhell@gmail.com',
     url='https://github.com/HoverHell/RedditImageGrab',
+    license='GNU General Public License v3 (GPLv3)',
+
+    keywords="reddit image downloader",
     packages=['redditdownload'],
     entry_points={
         'console_scripts': [
             'redditdl.py = redditdownload.redditdownload:main',
         ],
     },
-    install_requires=[
-        # Actually, most of the dependencies are optional.
-    ],
+
+    install_requires=[],  # Actually, most of the dependencies are optional.
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
     extras_require={
@@ -85,7 +88,17 @@ setup_kwargs = dict(
             'Pillow', 'python-magic',
             'pyaux', 'yaml', 'ipython', 'atomicfile',
         ],
-    }
+    },
+
+    classifiers=[
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Natural Language :: English',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: POSIX',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
+        'Topic :: Terminals',
+    ],
 )
 
 
