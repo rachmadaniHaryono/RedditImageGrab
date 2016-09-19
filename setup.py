@@ -1,19 +1,25 @@
 #!/usr/bin/env python
 # coding: utf8
+"""setup.py."""
 
 import os
 from setuptools import setup
 
 
-here = os.path.dirname(__file__)
-with open(os.path.join(here, 'readme.md')) as _fo:
-    LONG_DESCRIPTION = _fo.read()
+HERE = os.path.dirname(__file__)
+README_PATH = os.path.join(HERE, 'readme.md')
+SHORT_DESCRIPTION = 'Downloads images from sub-reddits of reddit.com'
+if os.path.isfile(README_PATH):
+    with open(README_PATH) as _fo:
+        LONG_DESCRIPTION = _fo.read()
+else:
+    LONG_DESCRIPTION = SHORT_DESCRIPTION
 
 
 setup_kwargs = dict(
     name='redditdownload',
     version='1.5',
-    description='',  ## XX
+    description=SHORT_DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     # classifiers=[],
     # keywords='...,...',
