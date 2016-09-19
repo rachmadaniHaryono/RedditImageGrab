@@ -4,8 +4,11 @@
 
 import os
 from setuptools import setup
+from setuptools.command.test import test
 
 
+# taken example from
+# https://coderwall.com/p/qawuyq/use-markdown-readme-s-in-python-modules
 HERE = os.path.dirname(__file__)
 README_PATH = os.path.join(HERE, 'readme.md')
 SHORT_DESCRIPTION = 'Downloads images from sub-reddits of reddit.com'
@@ -15,6 +18,44 @@ if os.path.isfile(README_PATH):
 else:
     LONG_DESCRIPTION = SHORT_DESCRIPTION
 
+TESTS_REQUIRE = [
+    'mock',
+    'pytest',
+    'tox'
+]
+
+
+class Tox(test):
+    """Extend setuptools/distribute test command.
+
+    It is used to trigger a test run when python setup.py test is issued.
+
+    Taken from:
+    https://tox.readthedocs.io/en/latest/example/basic.html
+    """
+
+    user_options = [('tox-args=', 'a', "Arguments to pass to tox")]
+
+    def initialize_options(self):
+        """initialize_options."""
+        test.initialize_options(self)
+        self.tox_args = None
+
+    def finalize_options(self):
+        """finalize options."""
+        test.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        """run tests."""
+        # import here, cause outside the eggs aren't loaded
+        import tox
+        import shlex
+        args = self.tox_args
+        if args:
+            args = shlex.split(self.tox_args)
+        tox.cmdline(args=args)
 
 setup_kwargs = dict(
     name='redditdownload',
@@ -35,6 +76,8 @@ setup_kwargs = dict(
     install_requires=[
         # Actually, most of the dependencies are optional.
     ],
+    tests_require=TESTS_REQUIRE,
+    cmdclass={'test': Tox},
     extras_require={
         'recommended': [
             'beautifulsoup4', 'lxml', 'html5lib',
