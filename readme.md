@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/HoverHell/RedditImageGrab.svg?branch=master)](https://travis-ci.org/HoverHell/RedditImageGrab)
+[![Build Status](https://travis-ci.org/rachmadaniHaryono/RedditImageGrab.svg?branch=master)](https://travis-ci.org/rachmadaniHaryono/RedditImageGrab)
 
 # RedditImageGrab
 
@@ -11,17 +11,14 @@ subreddit and download them to a folder.
 
 # Requirements:
 
- * Python 2 (Python3 might be supported over 2to3, but see for
-   yourself and report back).
+ * Python 2.7 (for python3 try [this fork](https://github.com/jtara1/RedditImageGrab))
+ * requests
  * Optional requirements: listed in setup.py under extras_require.
 
 
 # Usage:
 
 See `./redditdl.py --help` for uptodate details.
-
-
-ordering = ('key', )
 
     redditdl.py [-h] [--multireddit] [--last l] [--score s] [--num n]
                      [--update] [--sfw] [--nsfw]
@@ -57,6 +54,18 @@ optional arguments:
                         Specify filename format: reddit (default), title or
                         url
     --sort-type         Sort the subreddit.
+
+
+# Installation
+
+```
+$git clone https://github.com/rachmadaniHaryono/RedditImageGrab/tree/master
+$cd redditdownload
+$./setup.py install
+```
+or directly with pip
+
+```[sudo] pip install https://github.com/rachmadaniHaryono/RedditImageGrab/archive/master.zip```
 
 
 # Examples
