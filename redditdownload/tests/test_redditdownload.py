@@ -24,23 +24,6 @@ class TestParseArgs(TestCase):
         self.assertFalse(ARGS.sfw)
 
 
-class TestProcessDeviantUrl(TestCase):
-    def setUp(self):
-        self.url = 'http://shortethan.deviantart.com/art/Bumbleby-Shirts-495533842'
-        # actual link is :
-        # http://www.deviantart.com/download/495533842/bumbleby_shirts_by_shortethan-d8710cy.png?token=a5c45dc54b928b8a9622203db5142f9b5e1c3e7f&ts=1440638185
-        # token may change per request
-        self.not_full_download_url = ('http://www.deviantart.com/download/'
-                                      '495533842/bumbleby_shirts_by_shortethan-d8710cy.png')
-
-    def test_link_with_download_button(self):
-        result_url = process_deviant_url(self.url)
-        # result_url is a list, contain one or more pic
-        self.assertIsInstance(result_url, list)
-        self.assertIn(self.not_full_download_url, result_url[0])
-        self.assertGreaterEqual(len(result_url), 1)
-
-
 class TestProcessImgurUrl(TestCase):
     def setUp(self):
         self.album_url = 'http://imgur.com/a/WobUS'
