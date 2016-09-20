@@ -79,12 +79,14 @@ setup_kwargs = dict(
     },
     install_requires=[
         'requests',
+        'bs4',
+        'lxml',
     ],
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
     extras_require={
         'recommended': [
-            'beautifulsoup4', 'lxml', 'html5lib',
+            'html5lib',
             'Pillow', 'python-magic',
             'pyaux', 'yaml', 'ipython', 'atomicfile',
         ],
