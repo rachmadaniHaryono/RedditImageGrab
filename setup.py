@@ -77,14 +77,14 @@ setup_kwargs = dict(
             'redditdl.py = redditdownload.redditdownload:main',
         ],
     },
-
-    install_requires=[],  # Actually, most of the dependencies are optional.
+    install_requires=[
+        'requests',
+    ],
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
     extras_require={
         'recommended': [
             'beautifulsoup4', 'lxml', 'html5lib',
-            'requests',
             'Pillow', 'python-magic',
             'pyaux', 'yaml', 'ipython', 'atomicfile',
         ],
