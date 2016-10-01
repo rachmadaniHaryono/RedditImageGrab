@@ -78,14 +78,17 @@ setup_kwargs = dict(
         ],
     },
     install_requires=[
-        'requests',
-        'bs4',
-        'lxml',
+        # Most of the dependencies are kept as optional.
+        # The intent is to keep basic reddit+imgur available without
+        # any non-core libraries.
     ],
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
     extras_require={
         'recommended': [
+            'bs4',
+            'lxml',
+            'requests',
             'html5lib',
             'Pillow', 'python-magic',
             'pyaux', 'yaml', 'ipython', 'atomicfile',
