@@ -77,6 +77,7 @@ def extract_imgur_album_urls(album_url):
         return []
 
     filedata = response.read()
+    # TODO: stop parsing HTML with regexes.
     match = re.compile(r'\"hash\":\"(.[^\"]*)\",\"title\"')
     items = []
 
@@ -100,6 +101,7 @@ def download_from_url(url, dest_file):
     """Attempt to download file specified by url to 'dest_file'.
 
     Raises:
+
         WrongFileTypeException
 
             when content-type is not in the supported types or cannot
@@ -109,6 +111,10 @@ def download_from_url(url, dest_file):
 
             If the filename (derived from the URL) already exists in
             the destination directory.
+
+        HTTPError
+
+            ...
     """
     # Don't download files multiple times!
     if pathexists(dest_file):
@@ -120,6 +126,9 @@ def download_from_url(url, dest_file):
         return None
     response = request(url)
     info = response.info()
+    actual_url = response.url
+    if actual_url == 'http://i.imgur.com/removed.png':
+        raise HTTPError(actual_url, 404, "Imgur suggests the image was removed", None, None)
 
     # Work out file type either from the response or the url.
     if 'content-type' in info.keys():
