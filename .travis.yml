@@ -10,7 +10,6 @@ install:
 
 # command to run tests
 script:
- - python -m pytest
- - coverage run tests.py
+ - python -m pytest --cov=redditdownload --cov-config=.coveragerc
 after_success:
  - codecov

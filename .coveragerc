@@ -1,0 +1,5 @@
+[run]
+omit =
+    redditdownload/img_scrap_stuff.py
+    redditdownload/gfycat.py
+    redditdownload/scrap_wrongies.py
