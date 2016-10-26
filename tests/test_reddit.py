@@ -1,3 +1,4 @@
+"""test reddit module."""
 import json
 try:  # py3
     from unittest import mock
@@ -16,27 +17,35 @@ def test_empty_string():
     assert isinstance(res, list)
     assert len(res) > 0
 
+
 @mock.patch('redditdownload.reddit.urlopen')
 @mock.patch('redditdownload.reddit.Request')
 def test_empty_string_mock(mock_requests, mock_urlopen):
     """test empty string but with mocking external dependencies.
 
-    it will result the following url which 
-    https://www.reddit.com/r/.json 
+    it will result the following url which
+    https://www.reddit.com/r/.json
     which will redirect to json version of this url
     https://www.reddit.com/subreddits
     """
     expected_url = 'http://www.reddit.com/r/.json'
+    expected_headers = {'User-Agent': 'RedditImageGrab script.'}
     mock_resp = mock.Mock()
-    mock_items = range(5)
-    mock_data = [{'data' :x} for x in mock_items]
-    mock_resp.read.return_value = json.dumps({'data':{'children':mock_data}})
+    mock_url_dict = {'url': "http://example.com/a.jpg"}
+    mock_data = [{'data': mock_url_dict}]
+    mock_resp.read.return_value = json.dumps({'data': {'children': mock_data}})
     mock_urlopen.return_value = mock_resp
 
     res = getitems("")
 
-    assert res == mock_items
-    mock_requests.assert_called_once_with(expected_url, headers=mock.ANY)
+    assert len(res) == 1
+    assert res[0] == mock_url_dict
+    mock_requests.assert_called_once_with(expected_url, headers=expected_headers)
+    assert len(mock_urlopen.mock_calls) == 2
+    mock_urlopen.assert_has_calls([
+        mock.call(mock_requests.return_value),
+        mock.call().read(),
+    ])
 
 
 @mock.patch('redditdownload.reddit.urlopen')
@@ -44,9 +53,9 @@ def test_empty_string_mock(mock_requests, mock_urlopen):
 def test_sort_type(mock_requests, mock_urlopen):
     """test sort_type."""
     mock_resp = mock.Mock()
-    mock_items = range(5)
-    mock_data = [{'data' :x} for x in mock_items]
-    mock_resp.read.return_value = json.dumps({'data':{'children':mock_data}})
+    mock_url_dict = {'url': "http://example.com/a.jpg"}
+    mock_data = [{'data': mock_url_dict}]
+    mock_resp.read.return_value = json.dumps({'data': {'children': mock_data}})
     mock_urlopen.return_value = mock_resp
 
     # sort_type none, input is multireddit
@@ -81,8 +90,10 @@ def test_sort_type(mock_requests, mock_urlopen):
             expected_url = url_format.format(sort_type, time_limit)
 
             res = getitems('cats', reddit_sort=reddit_sort)
-
+            assert len(res) == 1
+            assert res[0] == mock_url_dict
             mock_requests.assert_called_once_with(expected_url, headers=mock.ANY)
+
 
 @mock.patch('redditdownload.reddit.urlopen')
 @mock.patch('redditdownload.reddit.Request')
@@ -90,9 +101,9 @@ def test_advanced_sort_and_last_id(mock_requests, mock_urlopen):
     """test for advanced sort and last id."""
     last_id = '44h81z'
     mock_resp = mock.Mock()
-    mock_items = range(5)
-    mock_data = [{'data' :x} for x in mock_items]
-    mock_resp.read.return_value = json.dumps({'data':{'children':mock_data}})
+    mock_url_dict = {'url': "http://example.com/a.jpg"}
+    mock_data = [{'data': mock_url_dict}]
+    mock_resp.read.return_value = json.dumps({'data': {'children': mock_data}})
     mock_urlopen.return_value = mock_resp
 
     # test with advanced_sort
@@ -105,7 +116,8 @@ def test_advanced_sort_and_last_id(mock_requests, mock_urlopen):
             expected_url = url_format.format(sort_type, time_limit, last_id)
 
             res = getitems('cats', reddit_sort=reddit_sort, previd=last_id)
-
+            assert len(res) == 1
+            assert res[0] == mock_url_dict
             mock_requests.assert_called_once_with(expected_url, headers=mock.ANY)
 
 
@@ -114,11 +126,12 @@ def test_raise_error_on_request(mock_requests):
     """test when error raised on requests."""
     errors = [
         HTTPError(None, 404, 'mock error', None, None), KeyboardInterrupt]
-    for error in  errors:
+    for error in errors:
         mock_requests.side_effect = error
 
         with pytest.raises(SystemExit):
             getitems('cats')
+
 
 @mock.patch('redditdownload.reddit.Request')
 def test_value_error_on_request(mock_requests):
@@ -132,6 +145,7 @@ def test_value_error_on_request(mock_requests):
     mock_requests.side_effect = ValueError(msg)
     with pytest.raises(SystemExit):
         getitems('cats')
+
 
 def test_error_on_multireddit_input():
     """test wrong multireddit flag on multireddit input."""
