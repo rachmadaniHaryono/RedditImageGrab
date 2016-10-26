@@ -2,6 +2,7 @@
 """Return list of items from a sub-reddit of reddit.com."""
 
 import sys
+import HTMLParser
 from urllib2 import urlopen, Request, HTTPError
 from json import JSONDecoder
 
@@ -98,7 +99,12 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
         req = Request(url, headers=hdr)
         json = urlopen(req).read()
         data = JSONDecoder().decode(json)
-        items = [x['data'] for x in data['data']['children']]
+        if isinstance(data, dict):
+            items = [x['data'] for x in data['data']['children']]
+        elif isinstance(data, list):
+            # e.g. https://www.reddit.com/r/photoshopbattles/comments/29evni.json
+            items = [x['data'] for subdata in data for x in subdata['data']['children']]
+            items = [item for item in items if item.get('url')]
     except HTTPError as ERROR:
         error_message = '\tHTTP ERROR: Code %s for %s' % (ERROR.code, url)
         sys.exit(error_message)
@@ -110,5 +116,14 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
     except KeyboardInterrupt as ERROR:
         error_message = '\tKeyboardInterrupt: url:{}.'.format(url)
         sys.exit(error_message)
+
+    # This is weird but apparently necessary: reddit's json data
+    # returns `url` values html-escaped, whereas we normally need them
+    # in the way they are meant to be downloaded (i.e. urlquoted at
+    # most).
+    htmlparser = HTMLParser.HTMLParser()
+    for item in items:
+        if item.get('url'):
+            item['url'] = htmlparser.unescape(item['url'])
 
     return items
