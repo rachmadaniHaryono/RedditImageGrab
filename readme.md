@@ -9,12 +9,18 @@ fresh and interesting. The main idea is that the script would download
 any JPEG or PNG formatted image that it found listed in the specified
 subreddit and download them to a folder.
 
+This fork goal is to create web gui,
+so it can be paired with [hydrus](https://github.com/hydrusnetwork/hydrus).
+
+other version can be found here
+
+- original: [HoverHell/RedditImageGrab](https://github.com/HoverHell/RedditImageGrab)
+- python3 fork: [jtara1/RedditImageGrab](https://github.com/jtara1/RedditImageGrab)
 
 # Requirements:
 
- * Python 2.7 (for python3 try [this fork](https://github.com/jtara1/RedditImageGrab))
- * requests
- * Optional requirements: listed in setup.py under extras_require.
+ * Python3
+ * Optional requirements: listed in setup.py under `extras_require`.
 
 
 # Usage:
@@ -66,7 +72,9 @@ $./setup.py install
 ```
 or directly with pip
 
-```[sudo] pip install https://github.com/rachmadaniHaryono/RedditImageGrab/archive/master.zip```
+```
+[sudo] pip install https://github.com/rachmadaniHaryono/RedditImageGrab/archive/master.zip
+```
 
 
 # Examples
@@ -105,7 +113,7 @@ Retrieve last 10 pics in the 'wallpaper' subreddit with the word
 
 Download top week post from subreddit 'animegifs' and use gfycat gif mirror (if available)
 
-	python redditdl.py animegifs --sort-type topweek --mirror-gfycat
+    python redditdl.py animegifs --sort-type topweek --mirror-gfycat
 
 
 ## Sorting
