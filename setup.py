@@ -57,9 +57,10 @@ class Tox(test):
             args = shlex.split(self.tox_args)
         tox.cmdline(args=args)
 
+
 setup_kwargs = dict(
     name='redditdownload',
-    version='1.5',
+    version='2.0.0',
     description=SHORT_DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     # classifiers=[],
