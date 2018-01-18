@@ -1,33 +1,39 @@
 #!/usr/bin/env python
 """Return list of items from a sub-reddit of reddit.com."""
-
+from html.parser import HTMLParser
+from urllib.error import HTTPError
+import logging
 import sys
-import HTMLParser
-from urllib2 import urlopen, Request, HTTPError
-from json import JSONDecoder
+
+import requests
 
 
-def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
+def getitems(subreddit, multireddit=False, previd='', reddit_sort=None, return_raw_data=False):
     """Return list of items from a subreddit.
+
+    Returned data maybe list of post url if `return_raw_data` is not enabled.
+    if enabled, it will return json data.
 
     :param subreddit: subreddit to load the post
     :param multireddit: multireddit if given instead subreddit
     :param previd: previous post id, to get more post
     :param reddit_sort: type of sorting post
-    :returns: list -- list of post url
+    :param return_raw_data: if enabled return raw data instead
+    :returns: data
 
     :Example:
 
     >>> # Recent items for Python.
     >>> items = getitems('python')
     >>> for item in items:
-    ...     print '\t%s - %s' % (item['title'], item['url']) # doctest: +SKIP
+    ...     print('\t%s - %s' % (item['title'], item['url'])) # doctest: +SKIP
 
     >>> # Previous items for Python.
     >>> olditems = getitems('python', ITEMS[-1]['id'])
     >>> for item in olditems:
-    ...     print '\t%s - %s' % (item['title'], item['url']) # doctest: +SKIP
+    ...     print('\t%s - %s' % (item['title'], item['url'])) # doctest: +SKIP
     """
+    log = logging.getLogger(__name__)
     # assume no advanced sorting.
     is_advanced_sort = False
 
@@ -35,7 +41,7 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
         if '/m/' not in subreddit:
             warning = ('That doesn\'t look like a multireddit. Are you sure'
                        'you need that multireddit flag?')
-            print warning
+            print(warning)
             sys.exit(1)
         url = 'http://www.reddit.com/user/%s.json' % subreddit
     if not multireddit:
@@ -43,7 +49,7 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
             warning = ('It looks like you are trying to fetch a multireddit. \n'
                        'Check the multireddit flag. '
                        'Call --help for more info')
-            print warning
+            print(warning)
             sys.exit(1)
         # no sorting needed
         if reddit_sort is None:
@@ -95,11 +101,15 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
             # add advanced sort
             url += 'sort={}&t={}'.format(sort_type, sort_time_limit)
 
+    log.debug("url:{}".format(url))
     try:
-        req = Request(url, headers=hdr)
-        json = urlopen(req).read()
-        data = JSONDecoder().decode(json)
+        resp = requests.get(url, headers=hdr)
+        data = resp.json()
+        if return_raw_data:
+            return data
         if isinstance(data, dict):
+            if 'data' not in data:
+                log.error('data: {}'.format(data))
             items = [x['data'] for x in data['data']['children']]
         elif isinstance(data, list):
             # e.g. https://www.reddit.com/r/photoshopbattles/comments/29evni.json
@@ -121,7 +131,7 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None):
     # returns `url` values html-escaped, whereas we normally need them
     # in the way they are meant to be downloaded (i.e. urlquoted at
     # most).
-    htmlparser = HTMLParser.HTMLParser()
+    htmlparser = HTMLParser()
     for item in items:
         if item.get('url'):
             item['url'] = htmlparser.unescape(item['url'])
