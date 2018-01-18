@@ -1,11 +1,79 @@
 #!/usr/bin/env python
 """Return list of items from a sub-reddit of reddit.com."""
 from html.parser import HTMLParser
+from urllib.parse import urlparse, urlencode
 from urllib.error import HTTPError
 import logging
 import sys
 
 import requests
+
+
+def get_url(subreddit, multireddit=False, previd='', reddit_sort=None):
+    """get url."""
+    # assume no advanced sorting.
+    is_advanced_sort = False
+    assert not('#' in subreddit or (reddit_sort and '#' in reddit_sort))
+    if multireddit:
+        if '/m/' not in subreddit:
+            warning = ('That doesn\'t look like a multireddit. Are you sure'
+                       'you need that multireddit flag?')
+            print(warning)
+            sys.exit(1)
+        url = 'http://www.reddit.com/user/{}.json'.format(subreddit)
+    if not multireddit:
+        if '/m/' in subreddit:
+            warning = ('It looks like you are trying to fetch a multireddit. \n'
+                       'Check the multireddit flag. '
+                       'Call --help for more info')
+            print(warning)
+            sys.exit(1)
+        # no sorting needed
+        if reddit_sort is None:
+            url = 'http://www.reddit.com/r/{}.json'.format(subreddit)
+        # if sort is top or controversial, may include advanced sort (ie week, all etc)
+        elif 'top' in reddit_sort:
+            url = 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, 'top')
+        elif 'controversial' in reddit_sort:
+            url = 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, 'controversial')
+        # use default
+        else:
+            url = 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, reddit_sort)
+
+    # Get items after item with 'id' of previd.
+    # here where is query start
+    # query for previd comment
+    url_query_dict = {}
+    if previd:
+        url_query_dict['after'] = 't3_{}'.format(previd)
+        # url = '%s?after=t3_%s' % (url, previd)
+
+    # query for more advanced top and controversial sort
+    # available extension : hour, day, week, month, year, all
+    # ie tophour, topweek, topweek etc
+    # ie controversialhour, controversialweek etc
+
+    # check if reddit_sort is advanced sort
+    is_advanced_sort = False
+    if reddit_sort is not None:
+        if reddit_sort == 'top' or reddit_sort == 'controversial':
+            # dont need another additional query
+            is_advanced_sort = False
+        elif 'top' in reddit_sort:
+            is_advanced_sort = True
+            sort_time_limit = reddit_sort[3:]
+            sort_type = 'top'
+        elif 'controversial' in reddit_sort:
+            is_advanced_sort = True
+            sort_time_limit = reddit_sort[13:]
+            sort_type = 'controversial'
+
+        if is_advanced_sort:
+            url_query_dict['sort'] = sort_type
+            url_query_dict['t'] = sort_time_limit
+    parsed = urlparse(url)
+    replaced = parsed._replace(query=urlencode(url_query_dict))
+    return replaced.geturl()
 
 
 def getitems(subreddit, multireddit=False, previd='', reddit_sort=None, return_raw_data=False):
@@ -34,73 +102,8 @@ def getitems(subreddit, multireddit=False, previd='', reddit_sort=None, return_r
     ...     print('\t%s - %s' % (item['title'], item['url'])) # doctest: +SKIP
     """
     log = logging.getLogger(__name__)
-    # assume no advanced sorting.
-    is_advanced_sort = False
-
-    if multireddit:
-        if '/m/' not in subreddit:
-            warning = ('That doesn\'t look like a multireddit. Are you sure'
-                       'you need that multireddit flag?')
-            print(warning)
-            sys.exit(1)
-        url = 'http://www.reddit.com/user/%s.json' % subreddit
-    if not multireddit:
-        if '/m/' in subreddit:
-            warning = ('It looks like you are trying to fetch a multireddit. \n'
-                       'Check the multireddit flag. '
-                       'Call --help for more info')
-            print(warning)
-            sys.exit(1)
-        # no sorting needed
-        if reddit_sort is None:
-            url = 'http://www.reddit.com/r/{}.json'.format(subreddit)
-        # if sort is top or controversial, may include advanced sort (ie week, all etc)
-        elif 'top' in reddit_sort:
-            url = 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, 'top')
-        elif 'controversial' in reddit_sort:
-            url = 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, 'controversial')
-        # use default
-        else:
-            url = 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, reddit_sort)
-
-    # Get items after item with 'id' of previd.
-
+    url = get_url(subreddit, multireddit, previd, reddit_sort)
     hdr = {'User-Agent': 'RedditImageGrab script.'}
-
-    # here where is query start
-    # query for previd comment
-    if previd:
-        url = '%s?after=t3_%s' % (url, previd)
-
-    # query for more advanced top and controversial sort
-    # available extension : hour, day, week, month, year, all
-    # ie tophour, topweek, topweek etc
-    # ie controversialhour, controversialweek etc
-
-    # check if reddit_sort is advanced sort
-    is_advanced_sort = False
-    if reddit_sort is not None:
-        if reddit_sort == 'top' or reddit_sort == 'controversial':
-            # dont need another additional query
-            is_advanced_sort = False
-        elif 'top' in reddit_sort:
-            is_advanced_sort = True
-            sort_time_limit = reddit_sort[3:]
-            sort_type = 'top'
-        elif 'controversial' in reddit_sort:
-            is_advanced_sort = True
-            sort_time_limit = reddit_sort[13:]
-            sort_type = 'controversial'
-
-        if is_advanced_sort:
-            # check if url have already query
-            if '?' in url.split('/')[-1]:
-                url += '&'
-            else:  # url dont have query yet
-                url += '?'
-            # add advanced sort
-            url += 'sort={}&t={}'.format(sort_type, sort_time_limit)
-
     log.debug("url:{}".format(url))
     try:
         resp = requests.get(url, headers=hdr)

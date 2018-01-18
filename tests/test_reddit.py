@@ -1,13 +1,16 @@
 """test reddit module."""
 from unittest import mock
 from urllib.error import HTTPError
+from urllib.parse import quote_plus
 import itertools
 import logging
 
+from hypothesis import given
+import hypothesis.strategies as st
 import pytest
 import vcr
 
-from redditdownload.reddit import getitems
+from redditdownload.reddit import getitems, get_url
 
 
 logging.basicConfig()
@@ -149,3 +152,26 @@ def test_error_on_multireddit_input():
     # multireddit input given but multireddit flag is False
     with pytest.raises(SystemExit):
         getitems('someuser/m/some_multireddit', multireddit=False)
+
+
+@given(
+    st.text(),
+    st.booleans(),
+    st.text(),
+    st.text(),
+)
+def test_get_url(subreddit, multireddit, previd, reddit_sort):
+    """test method."""
+    if '#' in subreddit or '#' in reddit_sort:
+        with pytest.raises(AssertionError):
+            get_url(subreddit, multireddit, previd, reddit_sort)
+    elif multireddit and '/m/' not in subreddit:
+        with pytest.raises(SystemExit):
+            get_url(subreddit, multireddit, previd, reddit_sort)
+    else:
+        res = get_url(subreddit, multireddit, previd, reddit_sort)
+        if previd:
+            assert res == 'http://www.reddit.com/r/{}/{}.json?after=t3_{}'.format(
+                subreddit, reddit_sort, quote_plus(previd, safe=''))
+        else:
+            assert res == 'http://www.reddit.com/r/{}/{}.json'.format(subreddit, reddit_sort)
