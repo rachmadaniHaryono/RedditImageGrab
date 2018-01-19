@@ -1,0 +1,37 @@
+{% extends 'admin/base.html' %}
+
+{% block body %}
+<form method="GET" action="/">
+  <div class="form-group"> {{ form.subreddit.label }} {{ form.subreddit(class_="form-control") }} </div>
+  <div class="form-group"> {{ form.sort_mode.label }} {{ form.sort_mode(class_="form-control") }} </div>
+  <div class="checkbox"> <label>{{form.disable_cache(type='checkbox')}}{{form.disable_cache.label}}</label></div>
+  <button type="submit" class="btn btn-default">Submit</button>
+</form>
+{% if entry %}
+<div>
+  {{pagination_section()}}
+  <table class="table table-condensed table-bordered">
+    <tr><th>URL</th><td><a href="{{entry.url.value}}">{{entry.url.value}}</a></td></tr>
+    {% if entry.extracted_urls %}
+      <tr><th>Extracted URL</th></tr>
+      {% for e_url in entry.extracted_urls %}
+        <tr><td>{{e_url.value}}</td></tr>
+      {% endfor %}
+    {% endif %}
+  </table>
+  {{pagination_section()}}
+</div>
+{% endif %}
+{% endblock %}
+
+{% macro pagination_section(info=True)%}
+  {% if info %} {{ pagination.info }} {% endif %}
+  {{ pagination.links }}
+  {% if query and not pagination.has_next and entry %}
+  <ul class="pagination">
+    <li class="next">
+      <a href="{{url_for('admin.index', subreddit=form.subreddit.value, sort_mode=form.sort_mode.value, page=pagination.page+1)}}">load next page</a>
+    </li>
+  </ul>
+  {% endif %}
+{% endmacro %}
