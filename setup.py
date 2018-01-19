@@ -76,23 +76,35 @@ setup_kwargs = dict(
     entry_points={
         'console_scripts': [
             'redditdl.py = redditdownload.redditdownload:main',
+            'redditdl-server = redditdownload.server:cli',
         ],
     },
     install_requires=[
         # Most of the dependencies are kept as optional.
         # The intent is to keep basic reddit+imgur available without
         # any non-core libraries.
+        'requests>=2.11.1',
+        'beautifulsoup4>=4.5.1',
+        "lxml>=3.6.4",
     ],
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
     extras_require={
         'recommended': [
-            'bs4',
-            'lxml',
             'requests',
             'html5lib',
             'Pillow', 'python-magic',
             'pyaux', 'yaml', 'ipython', 'atomicfile',
+        ],
+        'server': [
+            'Flask-Admin>=1.5.0',
+            'flask-paginate==0.5.1',
+            'Flask-SQLAlchemy>=2.3.1',
+            'Flask-WTF>=0.14.2',
+            'Flask>=0.12.2',
+            'humanize>=0.5.1',
+            'SQLAlchemy-Utils>=0.32.18',
+            'structlog>=17.2.0',
         ],
     },
 

@@ -1,4 +1,5 @@
 -r requirements.txt
-mock==2.0.0
-pytest-cov==2.4.0
-pytest==3.0.3
+hypothesis>=3.44.16
+pytest-cov>=2.4.0
+pytest>=3.0.3
+vcrpy>=1.11.1
