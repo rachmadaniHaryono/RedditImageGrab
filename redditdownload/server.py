@@ -3,10 +3,11 @@ import os
 import logging
 import pprint
 
-from flask import Flask, request
+from flask import Flask
 from flask.cli import FlaskGroup
 from flask_admin import Admin  # , BaseView, expose
 from flask_admin.contrib.sqla import ModelView
+import click
 
 from redditdownload import views, models
 
@@ -25,6 +26,7 @@ def create_app(script_info=None):
         app.jinja_env.auto_reload = True
     if debug:
         app.config['LOGGER_HANDLER_POLICY'] = 'debug'
+        app.debug = True  # additional step, may not work
         logging.basicConfig(level=logging.DEBUG)
         pprint.pprint(app.config)
     models.db.init_app(app)
@@ -53,11 +55,9 @@ def create_app(script_info=None):
     return app
 
 
-cli = FlaskGroup(create_app=create_app)
-
-
-@cli.command
-def custom_command():
+@click.group(cls=FlaskGroup, create_app=create_app)
+def cli():
+    """This is a management script for the wiki application."""
     pass
 
 
