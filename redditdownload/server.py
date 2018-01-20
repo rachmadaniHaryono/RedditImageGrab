@@ -7,6 +7,7 @@ from flask import Flask
 from flask.cli import FlaskGroup
 from flask_admin import Admin  # , BaseView, expose
 from flask_admin.contrib.sqla import ModelView
+from flask_debugtoolbar import DebugToolbarExtension
 import click
 
 from redditdownload import views, models
@@ -29,6 +30,7 @@ def create_app(script_info=None):
         app.debug = True  # additional step, may not work
         logging.basicConfig(level=logging.DEBUG)
         pprint.pprint(app.config)
+        DebugToolbarExtension(app)
     models.db.init_app(app)
     app.app_context().push()
     models.db.create_all()
