@@ -16,3 +16,14 @@
 /build
 /dist
 /gfycat
+
+# custom
+redditdownload/redditdownload.db
+temp.json
+tests/test_advanced_sort_and_last_id
+tests/test_empty_string
+tests/test_empty_string_mock
+tests/test_get_url
+tests/test_getitems
+tests/test_log.py
+tests/test_sort_type
