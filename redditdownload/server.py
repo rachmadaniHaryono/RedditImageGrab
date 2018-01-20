@@ -3,7 +3,7 @@ import os
 import logging
 import pprint
 
-from flask import Flask
+from flask import Flask, request
 from flask.cli import FlaskGroup
 from flask_admin import Admin  # , BaseView, expose
 from flask_admin.contrib.sqla import ModelView
@@ -39,9 +39,16 @@ def create_app(script_info=None):
     app_admin = Admin(
         app, name='Reddit Images Download', template_mode='bootstrap3',
         index_view=views.HomeView(name='Home', template=admin_templ, url='/'))
-    model_list = [models.DeniedURLFilter,]  # NOTE: may be used later
+    app_admin.add_view(views.URLView(name='URL Viewer', endpoint='u'))
+    model_list = [
+        (models.DeniedURLFilter, 'Denied URL Filter'),
+        (models.URLModel, 'URL Model'),
+    ]
     for model_item in model_list:
-        app_admin.add_view(ModelView(model_item, models.db.session))
+        if model_item[1]:
+            app_admin.add_view(ModelView(model_item[0], models.db.session, name=model_item[1]))
+        else:
+            app_admin.add_view(ModelView(model_item[0], models.db.session))
 
     return app
 

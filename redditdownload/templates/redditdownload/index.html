@@ -11,7 +11,11 @@
 <div>
   {{pagination_section()}}
   <table class="table table-condensed table-bordered">
-    <tr><th>URL</th><td><a href="{{entry.url.value}}">{{entry.url.value}}</a></td></tr>
+    <tr><th>URL</th><th>Action</th></tr>
+    <tr>
+      <td><a href="{{entry.url.value}}">{{entry.url.value}}</a></td>
+      <td><a class="btn btn-default details" href="{{url_for('u.index', u=entry.url.value)}}">Details</a></td>
+    </tr>
     {% if entry.extracted_urls %}
       <tr><th>Extracted URL</th></tr>
       {% for e_url in entry.extracted_urls %}

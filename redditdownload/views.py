@@ -6,7 +6,7 @@
 # from jinja2 import Markup
 # import humanize
 from flask import request  # , url_for
-from flask_admin import AdminIndexView, expose
+from flask_admin import AdminIndexView, expose, BaseView
 from flask_paginate import get_page_parameter, Pagination
 from gallery_dl.exception import NoExtractorError
 import structlog
@@ -49,3 +49,15 @@ class HomeView(AdminIndexView):
             template_kwargs['entry'] = {'url': url_m, 'extracted_urls': extracted_url_ms}
         template_kwargs['pagination'] = Pagination(**pagination_kwargs)
         return self.render('redditdownload/index.html', **template_kwargs)
+
+
+class URLView(BaseView):
+    @expose('/')
+    def index(self):
+        """View for single url."""
+        search_url = request.args.get('u', None)
+        entry = None
+        if search_url:
+            entry = models.URLModel.query.filter_by(value=search_url).one_or_none()
+        return self.render(
+            'redditdownload/url_view.html', entry=entry, search_url=search_url)
