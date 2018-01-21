@@ -47,9 +47,10 @@ def create_app(script_info=None):
     app_admin.add_view(views.URLView(name='URL Viewer', endpoint='u'))
     app_admin.add_view(views.SearchModelView(models.SearchModel, session, name='Search History'))
     app_admin.add_view(views.URLModelView(models.URLModel, session, name='URL History'))
+    app_admin.add_view(views.JSONDataView(models.JSONData, session, name='JSON Data'))
     model_list = [
         (models.DeniedURLFilter, 'Denied URL Filter'),
-        (models.JSONData, )
+        # (models.JSONData, 'JSON Data')
     ]
     for model_item in model_list:
         if len(model_item) == 2:

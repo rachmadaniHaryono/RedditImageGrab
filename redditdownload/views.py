@@ -1,6 +1,7 @@
 """views module."""
 # from urllib.parse import parse_qs, urlparse
 # import textwrap
+import json
 
 import humanize
 from jinja2 import Markup
@@ -77,7 +78,7 @@ class SearchModelView(ModelView):
 
     column_formatters = dict(
         created_at=date_formatter,
-        subreddit=lambda v, c, m, p: Markup('<a href="{}">{}</a>'.format(
+        subreddit=lambda v, c, m, n: Markup('<a href="{}">{}</a>'.format(
             url_for('admin.index', subreddit=m.subreddit),
             m.subreddit
         )),
@@ -94,10 +95,26 @@ class URLModelView(ModelView):
 
     column_formatters = dict(
         created_at=date_formatter,
-        value=lambda v, c, m, p: Markup('<a href="{0}">{0}</a>'.format(
+        value=lambda v, c, m, n: Markup('<a href="{0}">{0}</a>'.format(
             m.value,
         )),
     )
     can_view_details = True
     column_default_sort = ('created_at', True)
-    page_size=100
+    page_size = 100
+
+
+class JSONDataView(ModelView):
+    """Custom view for JSONData model."""
+
+    column_formatters = dict(
+        created_at=date_formatter,
+        value=lambda v, c, m, n: Markup(
+            '<pre><code class="json">{}</code></pre>'.format(
+                json.dumps(m.value, indent=2, sort_keys=True)
+            )
+        ),
+    )
+    extra_css = ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css']
+    extra_js = ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js', ]
+    list_template = 'redditdownload/json_data_list.html'
