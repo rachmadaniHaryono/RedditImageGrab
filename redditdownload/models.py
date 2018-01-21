@@ -73,6 +73,7 @@ class JSONData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
     value = db.Column(JSONType)
+    name = db.Column(db.String)
 
 
 class URLModel(db.Model):
