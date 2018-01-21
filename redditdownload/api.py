@@ -1,6 +1,7 @@
 import re
 
 from gallery_dl import job, extractor
+from gallery_dl.extractor.directlink import DirectlinkExtractor
 from redditdownload import models, reddit
 import structlog
 
@@ -9,9 +10,10 @@ log = structlog.getLogger(__name__)
 
 
 def get_url(subreddit, sort_mode=None, index=1, disable_cache=False):
+    session = models.db.session
     norm_idx = index - 1
     url_ms = []
-    m_q = models.db.session.query(models.SearchModel, models.URLModel).filter_by(
+    m_q = session.query(models.SearchModel, models.URLModel).filter_by(
         subreddit=subreddit, sort_mode=sort_mode)
     if m_q.first():
         url_ms = []
@@ -21,6 +23,7 @@ def get_url(subreddit, sort_mode=None, index=1, disable_cache=False):
             raise NotImplementedError
     else:
         reddit_data = reddit.getitems(subreddit, reddit_sort=sort_mode, return_raw_data=True)
+        data_children = reddit_data['data'].pop('children')
         kwargs = {
             'subreddit': subreddit,
             'sort_mode': sort_mode,
@@ -31,15 +34,17 @@ def get_url(subreddit, sort_mode=None, index=1, disable_cache=False):
         m = models.SearchModel(**kwargs)
         thread_ms = []
         url_ms = []
-        for x in reddit_data['data']['children']:
+        for x in data_children:
             thread_m = get_or_create_thread_model_from_json_data(x)[0]
             thread_ms.append(thread_m)
             url_ms.append(thread_m.url)
         m.thread_models.extend(thread_ms)
-        models.db.session.add_all(thread_ms)
-        models.db.session.add_all(url_ms)
-        models.db.session.add(m)
-        models.db.session.commit()
+        json_data_m, _ = models.get_or_create(session, models.JSONData, value=reddit_data)
+        m.json_data_list.append(json_data_m)
+        session.add_all(thread_ms)
+        session.add_all(url_ms)
+        session.add(m)
+        session.commit()
         if norm_idx > len(url_ms):
             # TODO
             raise NotImplementedError
@@ -71,20 +76,29 @@ def get_or_create_extracted_urls(url_model):
     instance = models.URLSet.query.filter_by(url=url_model).first()
     created = False
     extracted_url_ms = []
+    session = models.db.session
     if not instance:
         j = job.UrlJob(url_model.value)
         j.run()
         extractor_res = j.extractor
         log.debug('extraction', url=url_model, res=extractor_res)
-        # import pdb; pdb.set_trace()
-        if isinstance(j.extractor, extractor.reddit.RedditSubmissionExtractor) and not url_model.json_data_list:
-            json_data_value = j.extractor.submissions()[0][0]
-            json_data_m, _ = models.get_or_create(
-                models.db.session, models.JSONData, value=json_data_value)
-            url_model.json_data_list.append(json_data_m)
-            models.db.session.add(url_model)
-            models.db.session.commit()
+        # if isinstance(j.extractor, RedditSubmissionExtractor) and not url_model.json_data_list:
+        if isinstance(j.extractor, DirectlinkExtractor):
+            tag_ms = []
+            for key, item in j.extractor.data.items():
+                if key is not None and key != '':
+                    tag_m, _ = models.get_or_create(session, models.Tag, namespace=key, name=item)
+                    tag_ms.append(tag_m)
+            url_model.tags.extend(tag_ms)
+            session.add(url_model)
+            session.commit()
+        elif isinstance(j.extractor, extractor.imgur.ImgurImageExtractor):
+            key = 'item_id'
+            tag_m, _ = models.get_or_create(session, models.Tag, namespace=key, name=getattr(j.extractor, key))
+            url_model.tags.append(tag_m)
+            session.add(url_model)
+            session.commit()
         else:
             # TODO
-            raise NotImplementedError
+            raise NotImplementedError('URLModel:{}, extractor:{}'.format(url_model, j.extractor))
     return extracted_url_ms, created
