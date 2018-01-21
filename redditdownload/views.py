@@ -3,13 +3,12 @@
 # import textwrap
 import json
 
-import humanize
-from jinja2 import Markup
 from flask import request, url_for
 from flask_admin import AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
 from flask_paginate import get_page_parameter, Pagination
-from gallery_dl.exception import NoExtractorError
+from jinja2 import Markup
+import humanize
 import structlog
 
 from redditdownload import forms, models, api
@@ -34,29 +33,24 @@ class HomeView(AdminIndexView):
         page = request.args.get(get_page_parameter(), type=int, default=1)
         subreddit = form.subreddit.data
         disable_cache = form.disable_cache.data
+        sort_mode = None
         template_kwargs = {'entries': None, 'subreddit': subreddit, 'form': form, }
         pagination_kwargs = {'page': page, 'show_single_page': False, 'bs_version': 3, }
         if subreddit:
             pagination_kwargs['per_page'] = 1
-            url_m, res_data = api.get_url(
-                subreddit, sort_mode=form.sort_mode.data, index=page, disable_cache=disable_cache)
-            pagination_kwargs['total'] = res_data['total'] if res_data['total'] else 1
-            instance = models.NoExtractorURL.query.filter_by(url=url_m).first()
-            extracted_url_ms = []
-            if not instance:
-                try:
-                    extracted_url_ms, extracted_url_ms_created = api.get_or_create_extracted_urls(url_m)
-                    if extracted_url_ms_created and extracted_url_ms:
-                        models.db.session.add_all(extracted_url_ms)
-                        models.db.session.commit()
-                except NoExtractorError as e:
-                    log.debug('expected error', url=url_m, e=e)
-                    ne_url_m = models.NoExtractorURL(url=url_m)
-                    models.db.session.add(ne_url_m)
-                    models.db.session.commit()
-            else:
-                log.debug('use cache, no extractor found', url=url_m)
-            template_kwargs['entry'] = {'url': url_m, 'extracted_urls': extracted_url_ms}
+            search_m, search_m_created = api.get_or_create_search_model(
+                subreddit, sort_mode=sort_mode, disable_cache=disable_cache, page=page)
+            if search_m_created:
+                models.db.session.add(search_m)
+                models.db.session.commit()
+            url_set_list = []
+            url_ms = list(api.filter_url_models([x.url for x in search_m.thread_models]))
+            for url_m in url_ms:
+                url_set_list.append(api.get_or_create_url_set(url_m))
+            if any(x[1] for x in url_set_list):
+                models.db.session.add_all([x[0] for x in url_set_list])
+                models.db.session.commit()
+            template_kwargs['entries'] = [x[0] for x in url_set_list]
         template_kwargs['pagination'] = Pagination(**pagination_kwargs)
         return self.render('redditdownload/index.html', **template_kwargs)
 
