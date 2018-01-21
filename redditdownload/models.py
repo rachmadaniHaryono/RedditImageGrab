@@ -23,6 +23,10 @@ search_and_thread_sets = db.Table(
     'search_and_thread_sets',
     db.Column('search_id', db.Integer, db.ForeignKey('search_model.id'), primary_key=True),
     db.Column('thread_id', db.Integer, db.ForeignKey('thread_model.id'), primary_key=True))
+search_model_json_data_sets = db.Table(
+    'search_model_json_data_sets',
+    db.Column('search_model_id', db.Integer, db.ForeignKey('search_model.id'), primary_key=True),
+    db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
 url_json_data_sets = db.Table(
     'url_json_data_sets',
     db.Column('url_id', db.Integer, db.ForeignKey('url_model.id'), primary_key=True),
@@ -45,6 +49,9 @@ class SearchModel(db.Model):
     before_thread_id = db.Column(db.String)
     thread_models = relationship(
         'ThreadModel', secondary=search_and_thread_sets, lazy='subquery',
+        backref=db.backref('search_models', lazy=True))
+    json_data_list = relationship(
+        'JSONData', secondary=search_model_json_data_sets, lazy='subquery',
         backref=db.backref('search_models', lazy=True))
 
 
