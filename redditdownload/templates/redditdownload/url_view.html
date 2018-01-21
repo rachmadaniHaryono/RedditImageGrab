@@ -5,8 +5,10 @@
   <tr>
     <th>URL</th>
     <td>
+      {% if search_url %}
       <a href="{{search_url}}">[link]</a> 
       <a href="{{search_url}}">{{search_url}}</a>
+      {% endif %}
     </td>
   </tr>
 </table>
