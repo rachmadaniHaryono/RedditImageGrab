@@ -14,7 +14,7 @@
     <tr><th>URL</th><th>Action</th></tr>
     <tr>
       <td><a href="{{entry.url.value}}">{{entry.url.value}}</a></td>
-      <td><a class="btn btn-default details" href="{{url_for('u.index', u=entry.url.value)}}">Details</a></td>
+      <td><a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=entry.url.value)}}">Details</a></td>
     </tr>
     {% if entry.extracted_urls %}
       <tr><th>Extracted URL</th></tr>
@@ -31,10 +31,12 @@
 {% macro pagination_section(info=True)%}
   {% if info %} {{ pagination.info }} {% endif %}
   {{ pagination.links }}
-  {% if query and not pagination.has_next and entry %}
+  {% if not pagination.has_next and entry %}
   <ul class="pagination">
     <li class="next">
-      <a href="{{url_for('admin.index', subreddit=form.subreddit.value, sort_mode=form.sort_mode.value, page=pagination.page+1)}}">load next page</a>
+      <a href="{{url_for('admin.index', subreddit=form.subreddit.value, sort_mode=form.sort_mode.value, page=pagination.page+1)}}">
+	load next page
+      </a>
     </li>
   </ul>
   {% endif %}
