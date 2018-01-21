@@ -1,7 +1,7 @@
 import re
 
-from gallery_dl import job, extractor
-from gallery_dl.extractor.directlink import DirectlinkExtractor
+from gallery_dl import job
+from gallery_dl.extractor.message import Message
 from redditdownload import models, reddit
 import structlog
 
@@ -77,28 +77,35 @@ def get_or_create_extracted_urls(url_model):
     created = False
     extracted_url_ms = []
     session = models.db.session
-    if not instance:
-        j = job.UrlJob(url_model.value)
-        j.run()
-        extractor_res = j.extractor
-        log.debug('extraction', url=url_model, res=extractor_res)
-        # if isinstance(j.extractor, RedditSubmissionExtractor) and not url_model.json_data_list:
-        if isinstance(j.extractor, DirectlinkExtractor):
-            tag_ms = []
-            for key, item in j.extractor.data.items():
-                if key is not None and key != '':
-                    tag_m, _ = models.get_or_create(session, models.Tag, namespace=key, name=item)
-                    tag_ms.append(tag_m)
-            url_model.tags.extend(tag_ms)
-            session.add(url_model)
-            session.commit()
-        elif isinstance(j.extractor, extractor.imgur.ImgurImageExtractor):
-            key = 'item_id'
-            tag_m, _ = models.get_or_create(session, models.Tag, namespace=key, name=getattr(j.extractor, key))
-            url_model.tags.append(tag_m)
-            session.add(url_model)
-            session.commit()
-        else:
-            # TODO
-            raise NotImplementedError('URLModel:{}, extractor:{}'.format(url_model, j.extractor))
+    if instance:
+        return instance.extracted_urls, created
+    j = job.UrlJob(url_model.value)
+    j.run()
+    extractor_res = j.extractor
+    log.debug('extraction', url=url_model, res=type(extractor_res))
+    func_list = [
+        func for func in dir(extractor_res)
+        if callable(getattr(extractor_res, func)) and not func.startswith("__")
+    ]
+    log.debug('extractor funcs', flist=func_list)
+    log.debug('extractor vars', v=vars(j.extractor))
+    if hasattr(j.extractor, 'items') and not url_model.json_data_list:
+        items = list(j.extractor.items())
+        non_url_json_data_list = [x for x in items if x[0] != Message.Url]
+        url_json_data_list = [x for x in items if x[0] == Message.Url]
+        for item in url_json_data_list:
+            extracted_url_m = models.get_or_create(session, models.URLModel, value=item[1])[0]
+            if item[2]:
+                extracted_url_m.json_data_list.append(
+                    models.get_or_create(session, models.JSONData, value=item[2])[0])
+            extracted_url_ms.append(extracted_url_m)
+        url_model.json_data_list.append(
+            models.get_or_create(session, models.JSONData, value=non_url_json_data_list)[0]
+        )
+    if extracted_url_ms:
+        url_set_m = models.URLSet(url=url_model, extracted_urls=extracted_url_ms)
+        session.add(url_set_m)
+        session.commit()
+        created = True
+    session.add(url_model)
     return extracted_url_ms, created
