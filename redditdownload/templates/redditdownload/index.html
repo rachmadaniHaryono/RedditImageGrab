@@ -17,9 +17,12 @@
       <td><a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=entry.url.value)}}">Details</a></td>
     </tr>
     {% if entry.extracted_urls %}
-      <tr><th>Extracted URL</th></tr>
+      <tr><th colspan="2">Extracted URL</th></tr>
       {% for e_url in entry.extracted_urls %}
-        <tr><td>{{e_url.value}}</td></tr>
+	<tr>
+	  <td><a href="{{e_url.value}}">{{e_url.value}}</a></td>
+	  <td><a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=e_url.value)}}">Details</a></td>
+	</tr>
       {% endfor %}
     {% endif %}
   </table>
