@@ -54,7 +54,7 @@ def get_or_create_thread_model_from_json_data(json_data):
 def get_or_create_url_set(url_model):
     session = models.db.session
     m, created = models.get_or_create(session, models.URLSet, url=url_model)
-    if m:
+    if created:
         return m, created
     extracted_url_ms = []
     j = job.UrlJob(url_model.value)
