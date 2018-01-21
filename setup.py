@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # coding: utf8
-"""setup.py."""
+"""setup.py.
+
+package `SQLAlchemy` have to be restricted to certain version because following bug:
+
+https://github.com/flask-admin/flask-admin/issues/1583
+"""
 
 import os
 from setuptools import setup
@@ -105,6 +110,8 @@ setup_kwargs = dict(
             'humanize>=0.5.1',
             'SQLAlchemy-Utils>=0.32.18',
             'structlog>=17.2.0',
+            # limited package, see module description.
+            'SQLAlchemy==1.2.0b3',
         ],
     },
 
