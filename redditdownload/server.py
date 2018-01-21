@@ -40,19 +40,22 @@ def create_app(script_info=None):
         return {'app': app, 'db': models.db}
 
     admin_templ = 'redditdownload/index.html'
+    session = models.db.session
     app_admin = Admin(
         app, name='Reddit Images Download', template_mode='bootstrap3',
         index_view=views.HomeView(name='Home', template=admin_templ, url='/'))
     app_admin.add_view(views.URLView(name='URL Viewer', endpoint='u'))
+    app_admin.add_view(views.SearchModelView(models.SearchModel, session, name='Search History'))
+    app_admin.add_view(views.URLModelView(models.URLModel, session, name='URL History'))
     model_list = [
         (models.DeniedURLFilter, 'Denied URL Filter'),
-        (models.URLModel, 'URL Model'),
+        (models.JSONData, )
     ]
     for model_item in model_list:
-        if model_item[1]:
-            app_admin.add_view(ModelView(model_item[0], models.db.session, name=model_item[1]))
+        if len(model_item) == 2:
+            app_admin.add_view(ModelView(model_item[0], session, name=model_item[1]))
         else:
-            app_admin.add_view(ModelView(model_item[0], models.db.session))
+            app_admin.add_view(ModelView(model_item[0], session))
 
     return app
 
