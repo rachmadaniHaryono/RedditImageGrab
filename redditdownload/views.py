@@ -2,6 +2,7 @@
 # from urllib.parse import parse_qs, urlparse
 # import textwrap
 import json
+from pprint import pprint
 
 from flask import request, url_for
 from flask_admin import AdminIndexView, expose, BaseView
@@ -31,26 +32,20 @@ class HomeView(AdminIndexView):
     def index(self):
         form = forms.IndexForm(request.args)
         page = request.args.get(get_page_parameter(), type=int, default=1)
-        subreddit = form.subreddit.data
-        disable_cache = form.disable_cache.data
-        sort_mode = None
-        template_kwargs = {'entries': None, 'subreddit': subreddit, 'form': form, }
+        template_kwargs = {'entries': None, 'form': form, }
         pagination_kwargs = {'page': page, 'show_single_page': False, 'bs_version': 3, }
-        if subreddit:
+        if form.subreddit.data:
             pagination_kwargs['per_page'] = 1
-            search_m, search_m_created = api.get_or_create_search_model(
-                subreddit, sort_mode=sort_mode, disable_cache=disable_cache, page=page)
-            if search_m_created:
-                models.db.session.add(search_m)
+            url_set_data = api.get_or_create_url_sets(
+                form.subreddit.data,
+                session=models.db.session,
+                page=page, per_page=0, disable_cache=form.disable_cache.data,
+                sort_mode=form.sort_mode.data
+            )
+            if any(x[1] for x in url_set_data):
+                models.db.session.add_all([x[0] for x in url_set_data])
                 models.db.session.commit()
-            url_set_list = []
-            url_ms = list(api.filter_url_models([x.url for x in search_m.thread_models]))
-            for url_m in url_ms:
-                url_set_list.append(api.get_or_create_url_set(url_m))
-            if any(x[1] for x in url_set_list):
-                models.db.session.add_all([x[0] for x in url_set_list])
-                models.db.session.commit()
-            template_kwargs['entries'] = [x[0] for x in url_set_list]
+            template_kwargs['entries'] = [x[0] for x in url_set_data]
         template_kwargs['pagination'] = Pagination(**pagination_kwargs)
         return self.render('redditdownload/index.html', **template_kwargs)
 
@@ -60,11 +55,14 @@ class URLView(BaseView):
     def index(self):
         """View for single url."""
         search_url = request.args.get('u', None)
-        entry = None
+        kwargs = {}
         if search_url:
+            kwargs['search_url'] = search_url
             entry = models.URLModel.query.filter_by(value=search_url).one_or_none()
+            kwargs['entry'] = entry
+            kwargs['json_data_list'] = [json.dumps(x.value, indent=2, sort_keys=True) for x in entry.json_data_list]
         return self.render(
-            'redditdownload/url_view.html', entry=entry, search_url=search_url)
+            'redditdownload/url_view.html', **kwargs)
 
 
 class SearchModelView(ModelView):

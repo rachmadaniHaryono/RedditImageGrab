@@ -1,5 +1,3 @@
-import copy
-
 from flask import Flask
 import pytest
 import structlog
@@ -25,17 +23,13 @@ def tmp_db(tmpdir):
     return models.db
 
 
-@vcr.use_cassette()
-@pytest.mark.parametrize(
-    "test_input, data",
-    [
-        ({'idx': 1}, {'id': 1, 'value': 'https://i.redd.it/sq26seiyhua01.jpg'})
-    ]
-)
-def test_get_url(tmp_db, test_input, data):
-    res = api.get_url('cats', index=test_input['idx'])
-    assert res.id == data['id']
-    assert res.value == data['value']
-    res2 = api.get_url('cats')
-    assert res2.id == data['id']
-    assert res2.value == data['value']
+@vcr.use_cassette(record_mode='new_episodes')
+def test_get_or_create_url_sets(tmp_db):
+    res = api.get_or_create_url_sets('cats', session=tmp_db.session)
+    assert all([x[1] for x in res])
+    tmp_db.session.add_all([x[0] for x in res])
+    tmp_db.session.commit()
+    res2 = api.get_or_create_url_sets('cats', session=tmp_db.session)
+    assert all([not x[1] for x in res2])
+    tmp_db.session.add_all([x[0] for x in res2])
+    tmp_db.session.commit()
