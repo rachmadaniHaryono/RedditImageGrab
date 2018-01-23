@@ -65,10 +65,12 @@ optional arguments:
 
 # Installation
 
-```
-$git clone https://github.com/rachmadaniHaryono/RedditImageGrab/tree/master
-$cd redditdownload
-$./setup.py install
+```bash
+$ git clone https://github.com/rachmadaniHaryono/RedditImageGrab/tree/master
+$ cd redditdownload
+$ pip install .
+$ # to install server app
+$ pip install .[server]
 ```
 or directly with pip
 
@@ -115,6 +117,29 @@ Download top week post from subreddit 'animegifs' and use gfycat gif mirror (if 
 
     python redditdl.py animegifs --sort-type topweek --mirror-gfycat
 
+
+
+# Examples as Hydrus booru (alpha)
+
+The following command will run the server on port 5004 with thread mode
+
+```bash
+redditdl-server run -p 5004 --with-threads
+```
+
+Import following hydrus' booru config (assuming the server is run on port 5004)
+
+```yaml
+!Booru
+_advance_by_page_num: false
+_image_data: '[link]'
+_image_id: null
+_name: rdl
+_search_separator: +
+_search_url: http://127.0.0.1:5004/?subreddit=%tags%&page=%index%
+_tag_classnames_to_namespaces: {}
+_thumb_classname: details
+```
 
 ## Sorting
 
