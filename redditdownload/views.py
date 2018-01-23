@@ -1,8 +1,5 @@
 """views module."""
-# from urllib.parse import parse_qs, urlparse
-# import textwrap
 import json
-from pprint import pprint
 
 from flask import request, url_for
 from flask_admin import AdminIndexView, expose, BaseView
