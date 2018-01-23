@@ -1,15 +1,28 @@
 {% extends 'admin/base.html' %}
 
+{% block head %}
+  {{ super() }}
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script type="text/javascript" defer>hljs.initHighlightingOnLoad();</script>
+{% endblock %}
+
 {% block body %}
 <table class="table table-condensed table-bordered">
   <tr>
     <th>URL</th>
     <td>
       {% if search_url %}
-      <a href="{{search_url}}">[link]</a> 
+      <a href="{{search_url}}">[link]</a>
       <a href="{{search_url}}">{{search_url}}</a>
       {% endif %}
     </td>
   </tr>
+</table>
+<h3>JSON Data</h3>
+<table>
+{% for json_data in json_data_list %}
+  <tr><td><pre><code class="json">{{json_data}}</code></pre></td></tr>
+{% endfor %}
 </table>
 {% endblock %}
