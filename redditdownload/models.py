@@ -19,6 +19,10 @@ extracted_urls = db.Table(
     'extracted_urls',
     db.Column('url_set_id', db.Integer, db.ForeignKey('url_set.id'), primary_key=True),
     db.Column('url_id', db.Integer, db.ForeignKey('url_model.id'), primary_key=True))
+search_model_urls = db.Table(
+    'search_model_urls',
+    db.Column('search_id', db.Integer, db.ForeignKey('search_model.id'), primary_key=True),
+    db.Column('url_id', db.Integer, db.ForeignKey('url_model.id'), primary_key=True))
 search_and_thread_sets = db.Table(
     'search_and_thread_sets',
     db.Column('search_id', db.Integer, db.ForeignKey('search_model.id'), primary_key=True),
@@ -27,9 +31,21 @@ search_model_json_data_sets = db.Table(
     'search_model_json_data_sets',
     db.Column('search_model_id', db.Integer, db.ForeignKey('search_model.id'), primary_key=True),
     db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
+search_model_url_sets = db.Table(
+    'search_model_url_sets',
+    db.Column('search_model_id', db.Integer, db.ForeignKey('search_model.id'), primary_key=True),
+    db.Column('url_set_id', db.Integer, db.ForeignKey('url_set.id'), primary_key=True))
 url_json_data_sets = db.Table(
     'url_json_data_sets',
     db.Column('url_id', db.Integer, db.ForeignKey('url_model.id'), primary_key=True),
+    db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
+thread_model_json_data_sets = db.Table(
+    'thread_model_json_data_sets',
+    db.Column('thread_model_id', db.Integer, db.ForeignKey('thread_model.id'), primary_key=True),
+    db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
+url_set_json_data_sets = db.Table(
+    'url_set_json_data_sets',
+    db.Column('url_set_id', db.Integer, db.ForeignKey('url_set.id'), primary_key=True),
     db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
 
 
@@ -53,6 +69,9 @@ class SearchModel(db.Model):
     json_data_list = relationship(
         'JSONData', secondary=search_model_json_data_sets, lazy='subquery',
         backref=db.backref('search_models', lazy=True))
+    urls = relationship(
+        'URLModel', secondary=search_model_urls, lazy='subquery',
+        backref=db.backref('search_models', lazy=True))
 
 
 class ThreadModel(db.Model):
@@ -63,9 +82,8 @@ class ThreadModel(db.Model):
     url = relationship(
         'URLModel', lazy='subquery',
         backref=db.backref('thread_models', lazy=True))
-    json_data_id = db.Column(db.Integer, db.ForeignKey('json_data.id'))
-    json_data = relationship(
-        'JSONData', lazy='subquery',
+    json_data_list = relationship(
+        'JSONData', secondary=thread_model_json_data_sets, lazy='subquery',
         backref=db.backref('thread_models', lazy=True))
 
 
@@ -80,7 +98,6 @@ class URLModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
     value = db.Column(URLType)
-    extractor_found = db.Column(db.Boolean, unique=False, default=False)
     tags = relationship(
         'Tag', secondary=url_tags, lazy='subquery',
         backref=db.backref('urls', lazy=True))
@@ -99,7 +116,7 @@ class NoExtractorURL(db.Model):
     url_id = db.Column(db.Integer, db.ForeignKey('url_model.id'))
     url = relationship(
         'URLModel', lazy='subquery',
-        backref=db.backref('NoExtractor_models', lazy=True))
+        backref=db.backref('no_extractor_models', lazy=True))
 
 
 class DeniedURLFilter(db.Model):
@@ -123,6 +140,9 @@ class URLSet(db.Model):
     extracted_urls = relationship(
         'URLModel', secondary=extracted_urls, lazy='subquery',
         backref=db.backref('src_url_sets', lazy=True))
+    json_data_list = relationship(
+        'JSONData', secondary=url_set_json_data_sets, lazy='subquery',
+        backref=db.backref('url_sets', lazy=True))
 
 
 class Tag(db.Model):
