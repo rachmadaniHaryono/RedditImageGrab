@@ -11,27 +11,36 @@
 <div>
   {{pagination_section()}}
   <table class="table table-condensed table-bordered">
-  <tr><th>URL</th><th>Action</th></tr>
-  {% for entry in entries %}
-    <tr>
-      <td><a href="{{entry.url.value}}">{{entry.url.value}}</a></td>
-      <td><a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=entry.url.value)}}">Details</a></td>
-    </tr>
-      {% if entry.extracted_urls %}
-      <tr><th colspan="2">Extracted URL</th></tr>
+    {% for entry in entries %}
+      <tr><th>URL</th>
+	<td>{{anchor_tag(entry.url.value, entry.url.value)}}</td>
+	<td>{{details_button(entry.url)}}</td>
+      </tr>
+      {% if entry.extracted_urls and entry.extracted_urls.0.value != entry.url.value %}
+      <tr><td>&nbsp;</td><th colspan="2">Extracted URLS</th></tr>
       {% for e_url in entry.extracted_urls %}
-	<tr>
-	  <td><a href="{{e_url.value}}">{{e_url.value}}</a></td>
-	  <td><a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=e_url.value)}}">Details</a></td>
+	<tr><td>&nbsp;</td><td colspan="1">{{anchor_tag(e_url.value, e_url.value)}}</td>
+	  <td>{{details_button(e_url)}}</td>
 	</tr>
       {% endfor %}
+      {% endif%}
+      {% if not loop.last %}
+      <tr><td colspan="3">&nbsp;</td></tr>
       {% endif %}
-  {% endfor %}
+    {% endfor %}
   </table>
   {{pagination_section()}}
 </div>
 {% endif %}
 {% endblock %}
+
+{% macro details_button(url_m)%}
+<a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=url_m.value)}}">Details</a>
+{% endmacro %}
+
+{% macro anchor_tag(href, text, class_="") %}
+<a style=" display:block; width:70em; word-wrap:break-word" class="{{class_}}" href="{{href}}">{{text}}<a>
+{% endmacro %}
 
 {% macro pagination_section(info=True)%}
   {% if info %} {{ pagination.info }} {% endif %}
