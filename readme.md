@@ -131,7 +131,7 @@ Import following hydrus' booru config (assuming the server is run on port 5004)
 
 ```yaml
 !Booru
-_advance_by_page_num: false
+_advance_by_page_num: true
 _image_data: '[link]'
 _image_id: null
 _name: rdl
