@@ -24,6 +24,8 @@ def get_or_create_search_model(subreddit, sort_mode=None, disable_cache=False, p
     """get or create SearchModel."""
     session = models.db.session if session is None else session
     m, created = models.get_or_create(session, models.SearchModel, subreddit=subreddit, sort_mode=sort_mode, page=page)
+    if page != 1:
+        raise NotImplementedError('Only work for first page.')
     if created:
         reddit_data = reddit.getitems(subreddit, reddit_sort=sort_mode, return_raw_data=True)
         data_children = reddit_data['data'].pop('children')
