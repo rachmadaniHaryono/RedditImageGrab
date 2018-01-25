@@ -23,6 +23,7 @@ def tmp_db(tmpdir):
     return models.db
 
 
+@pytest.mark.no_travis
 @vcr.use_cassette(record_mode='new_episodes')
 def test_get_or_create_url_sets(tmp_db):
     res = api.get_or_create_url_sets('cats', session=tmp_db.session)
@@ -33,3 +34,18 @@ def test_get_or_create_url_sets(tmp_db):
     assert all([not x[1] for x in res2])
     tmp_db.session.add_all([x[0] for x in res2])
     tmp_db.session.commit()
+
+
+@pytest.mark.no_travis
+@vcr.use_cassette(record_mode='new_episodes')
+def test_get_or_create_url_sets_from_extractor_job(tmp_db):
+    url = 'https://www.reddit.com/r/anime/comments/7sri38/happy_10th_anniversary_ranime'
+    j = api.CacheJob(url)
+    j.run()
+    data_set = []
+    [data_set.append(x) for x in j.data if x not in data_set]
+    j.data = data_set
+    res = list(api.get_or_create_url_sets_from_extractor_job(job=j))
+    assert res
+    assert all(x[0] for x in res)
+    assert len(res) < 78

@@ -2,12 +2,16 @@
 """Models module."""
 from datetime import datetime
 
+from gallery_dl.extractor.message import Message
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import TIMESTAMP
-from sqlalchemy_utils.types import URLType, JSONType
+from sqlalchemy_utils.types import URLType, JSONType, ChoiceType
 import structlog
 
+
+# fix for gallery_dl error on Message module
+MESSAGE_URLLIST = Message.Urllist if hasattr(Message, 'Urllist') else 7
 
 log = structlog.getLogger(__name__)
 db = SQLAlchemy()
@@ -42,10 +46,6 @@ url_json_data_sets = db.Table(
 thread_model_json_data_sets = db.Table(
     'thread_model_json_data_sets',
     db.Column('thread_model_id', db.Integer, db.ForeignKey('thread_model.id'), primary_key=True),
-    db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
-url_set_json_data_sets = db.Table(
-    'url_set_json_data_sets',
-    db.Column('url_set_id', db.Integer, db.ForeignKey('url_set.id'), primary_key=True),
     db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
 
 
@@ -132,17 +132,29 @@ class DeniedURLFilter(db.Model):
 
 
 class URLSet(db.Model):
+    TYPES = [
+        (Message.Version, 'Version'),
+        (Message.Directory, 'Directory'),
+        (Message.Url, 'URL'),
+        (Message.Queue, 'Queue'),
+        (MESSAGE_URLLIST, 'URL List'),
+    ]
     id = db.Column(db.Integer, primary_key=True)
+    set_type = db.Column(ChoiceType(TYPES))
     url_id = db.Column(db.Integer, db.ForeignKey('url_model.id'))
     url = relationship(
         'URLModel', lazy='subquery',
         backref=db.backref('url_sets', lazy=True))
+    extracted_url = relationship(
+        'URLModel', lazy='subquery',
+        backref=db.backref('src_url_set', lazy=True))
     extracted_urls = relationship(
         'URLModel', secondary=extracted_urls, lazy='subquery',
         backref=db.backref('src_url_sets', lazy=True))
-    json_data_list = relationship(
-        'JSONData', secondary=url_set_json_data_sets, lazy='subquery',
-        backref=db.backref('url_sets', lazy=True))
+    json_id = db.Column(db.Integer, db.ForeignKey('json_data.id'))
+    json_data = relationship(
+        'JSONData', lazy='subquery',
+        backref=db.backref('url_set', lazy=True))
 
 
 class Tag(db.Model):

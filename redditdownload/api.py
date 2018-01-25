@@ -78,6 +78,42 @@ def get_or_create_url_set(session, url, extracted_urls):
     return instance, created
 
 
+def get_or_create_url_sets_from_extractor_job(job, session=None):
+    session = models.db.session if session is None else session
+    url_m, _ = models.get_or_create(session, models.URLModel, value=job.url)
+    for msg in job.data:
+        msg_id = msg[0]
+        if msg_id in [Message.Version, Message.Directory]:
+            m, created = models.get_or_create(session, models.URLSet, url=url_m, set_type=msg_id)
+            if created and msg[1]:
+                m.json_data = models.get_or_create(session, models.JSONData, value=msg[1])[0]
+            yield m, created
+        elif msg_id in [Message.Url, Message.Queue]:
+            eurl_m = models.get_or_create(session, models.URLModel, value=msg[1])[0]
+            m, created = models.get_or_create(
+                session, models.URLSet, url=url_m, set_type=msg_id, extracted_url=eurl_m)
+            if created and msg[2]:
+                m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
+            yield m, created
+        elif msg_id == Message.Urllist:
+            eurl_ms = []
+            for url in msg[1]:
+                eurl_m = models.get_or_create(session, models.URLModel, value=url)
+                eurl_ms.append(eurl_m)
+            m, created = models.get_or_create(
+                session, models.URLSet, url=url_m, set_type=msg_id, extracted_url=eurl_m)
+            if created:
+                m.extracted_urls = eurl_ms
+                m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
+            elif not created and m.extracted_urls == eurl_ms:
+                m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
+            else:
+                raise NotImplementedError
+            yield m, created
+        else:
+            raise ValueError('Unknown message type: {}'.format(msg_id))
+
+
 def get_or_create_url_sets(subreddit, session=None, page=1, per_page=0, disable_cache=False, sort_mode=None):
     session = models.db.session if session is None else session
     res = []
