@@ -86,9 +86,10 @@ setup_kwargs = dict(
     },
     install_requires=[
         # Most of the dependencies are kept as minimum as possible.
-        'requests>=2.11.1',
         'beautifulsoup4>=4.5.1',
-        "lxml>=3.6.4",
+        'gallery-dl>=1.1.2',
+        'lxml>=3.6.4',
+        'requests>=2.11.1',
         'structlog>=17.2.0',
     ],
     tests_require=TESTS_REQUIRE,
