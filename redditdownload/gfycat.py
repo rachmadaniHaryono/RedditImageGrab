@@ -1,4 +1,6 @@
 from collections import namedtuple
+from urllib.error import HTTPError
+from urllib.request import urlopen, Request
 
 
 class gfycat(object):
@@ -23,14 +25,13 @@ class gfycat(object):
         super(gfycat, self).__init__()
 
     def __fetch(self, url, param):
-        import urllib2
         import json
         try:
             # added simple User-Ajent string to avoid CloudFlare block this request
             headers = {'User-Agent': 'Mozilla/5.0'}
-            req = urllib2.Request(url+param, None, headers)
-            connection = urllib2.urlopen(req).read()
-        except urllib2.HTTPError, err:
+            req = Request(url+param, None, headers)
+            connection = urlopen(req).read()
+        except HTTPError as err:
             raise ValueError(err.read())
         result = namedtuple("result", "raw json")
         return result(raw=connection, json=json.loads(connection))
@@ -39,10 +40,8 @@ class gfycat(object):
         import random
         import string
         # gfycat needs to get a random string before our search parameter
-        randomString = ''.join(random.choice
-            (string.ascii_uppercase + string.digits) for _ in range(5))
-        result = self.__fetch(self.upload_url,
-            "/transcode/%s?fetchUrl=%s" % (randomString, param))
+        randomString = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
+        result = self.__fetch(self.upload_url, "/transcode/%s?fetchUrl=%s" % (randomString, param))
         if "error" in result.json:
             raise ValueError("%s" % result.json["error"])
         return _gfycatUpload(result)
@@ -59,8 +58,7 @@ class gfycat(object):
         import string
         import requests
         # gfycat needs a random key before upload
-        key = ''.join(random.choice
-            (string.ascii_uppercase + string.digits) for _ in range(10))
+        key = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
         # gfycat form data
         form = [('key', key)]
         form.append(('acl', 'private'))
@@ -68,7 +66,7 @@ class gfycat(object):
         form.append(('success_action_status', '200'))
         form.append(('signature', 'mk9t/U/wRN4/uU01mXfeTe2Kcoc='))
         form.append(('Content-Type', 'image/gif'))
-        form.append(('policy', 'eyAiZXhwaXJhdGlvbiI6ICIyMDIwLTEyLTAxVDEyOjAwOjAwLjAwMFoiLAogICAgICAgICAgICAiY29uZGl0aW9ucyI6IFsKICAgICAgICAgICAgeyJidWNrZXQiOiAiZ2lmYWZmZSJ9LAogICAgICAgICAgICBbInN0YXJ0cy13aXRoIiwgIiRrZXkiLCAiIl0sCiAgICAgICAgICAgIHsiYWNsIjogInByaXZhdGUifSwKCSAgICB7InN1Y2Nlc3NfYWN0aW9uX3N0YXR1cyI6ICIyMDAifSwKICAgICAgICAgICAgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgIiJdLAogICAgICAgICAgICBbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwgMCwgNTI0Mjg4MDAwXQogICAgICAgICAgICBdCiAgICAgICAgICB9'))
+        form.append(('policy', 'eyAiZXhwaXJhdGlvbiI6ICIyMDIwLTEyLTAxVDEyOjAwOjAwLjAwMFoiLAogICAgICAgICAgICAiY29uZGl0aW9ucyI6IFsKICAgICAgICAgICAgeyJidWNrZXQiOiAiZ2lmYWZmZSJ9LAogICAgICAgICAgICBbInN0YXJ0cy13aXRoIiwgIiRrZXkiLCAiIl0sCiAgICAgICAgICAgIHsiYWNsIjogInByaXZhdGUifSwKCSAgICB7InN1Y2Nlc3NfYWN0aW9uX3N0YXR1cyI6ICIyMDAifSwKICAgICAgICAgICAgWyJzdGFydHMtd2l0aCIsICIkQ29udGVudC1UeXBlIiwgIiJdLAogICAgICAgICAgICBbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwgMCwgNTI0Mjg4MDAwXQogICAgICAgICAgICBdCiAgICAgICAgICB9'))  # NOQA
         with open(file, 'rb') as upfile:
             form.append(('file', upfile))
             req = requests.post(self.post_url, files=form)
@@ -127,19 +125,19 @@ class _gfycatUtils(object):
             file = urllib2.urlopen(req)
             # make sure that the status code is 200, and the content type is mp4
             if int(file.code) is not 200 or file.headers["content-type"] != "video/mp4":
-                raise ValueError("Problem downlading the file. Status code is %s or the content-type is not right %s"
-                    % (file.code, file.headers["content-type"]))
+                raise ValueError(
+                    "Problem downlading the file. Status code is %s or the content-type is not right %s" % (
+                        file.code, file.headers["content-type"]))
             data = file.read()
             with open(location, "wb") as mp4:
                 mp4.write(data)
-        except urllib2.HTTPError, err:
+        except HTTPError as err:
             raise ValueError(err.read())
 
     def formated(self, ignoreNull=False):
             import json
             if not ignoreNull:
-                return json.dumps(self.js, indent=4,
-                    separators=(',', ': ')).strip('{}\n')
+                return json.dumps(self.js, indent=4, separators=(',', ': ')).strip('{}\n')
             else:
                 raise NotImplementedError
 

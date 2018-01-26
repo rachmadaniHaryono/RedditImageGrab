@@ -4,10 +4,11 @@
 from __future__ import print_function
 
 from argparse import ArgumentParser
-from httplib import InvalidURL
+from http.client import InvalidURL
 from io import StringIO
 from os import mkdir, getcwd
-from urllib2 import urlopen, HTTPError, URLError
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 import logging
 import os
 import re
