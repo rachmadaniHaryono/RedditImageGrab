@@ -87,7 +87,7 @@ def extract_imgur_album_urls(album_url):
     match = re.compile(r'\"hash\":\"(.[^\"]*)\",\"title\"')
     items = []
 
-    memfile = StringIO.StringIO(filedata)
+    memfile = StringIO(filedata)
 
     for line in memfile.readlines():
         results = re.findall(match, line)
