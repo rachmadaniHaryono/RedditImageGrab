@@ -85,12 +85,11 @@ setup_kwargs = dict(
         ],
     },
     install_requires=[
-        # Most of the dependencies are kept as optional.
-        # The intent is to keep basic reddit+imgur available without
-        # any non-core libraries.
+        # Most of the dependencies are kept as minimum as possible.
         'requests>=2.11.1',
         'beautifulsoup4>=4.5.1',
         "lxml>=3.6.4",
+        'structlog>=17.2.0',
     ],
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
@@ -109,7 +108,6 @@ setup_kwargs = dict(
             'Flask>=0.12.2',
             'humanize>=0.5.1',
             'SQLAlchemy-Utils>=0.32.18',
-            'structlog>=17.2.0',
             # limited package, see module description.
             'SQLAlchemy==1.2.0b3',
         ],
