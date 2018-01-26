@@ -3,19 +3,22 @@
 
 from __future__ import print_function
 
+from argparse import ArgumentParser
+from httplib import InvalidURL
+from io import StringIO
+from os import mkdir, getcwd
+from urllib2 import urlopen, HTTPError, URLError
+import logging
 import os
 import re
-import StringIO
 import sys
-import logging
-from urllib2 import urlopen, HTTPError, URLError
-from httplib import InvalidURL
-from argparse import ArgumentParser
-from os.path import (
-    exists as pathexists, join as pathjoin, basename as pathbasename,
-    splitext as pathsplitext)
-from os import mkdir, getcwd
 import time
+from os.path import (
+    exists as pathexists,
+    join as pathjoin,
+    basename as pathbasename,
+    splitext as pathsplitext,
+)
 
 from . import redditupload
 from .deviantart import process_deviant_url
