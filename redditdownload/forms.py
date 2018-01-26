@@ -11,3 +11,9 @@ class IndexForm(FlaskForm):
     time_mode = StringField('time mode', validators=[Optional])
     per_page = IntegerField('per page', validators=[Optional], default=0)
     disable_cache = BooleanField(validators=[Optional()])
+
+
+class URLViewForm(FlaskForm):
+    """Form for index."""
+    url = StringField('URL', validators=[DataRequired()])
+    extract = BooleanField(validators=[Optional()])

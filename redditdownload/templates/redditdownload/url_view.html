@@ -8,6 +8,12 @@
 {% endblock %}
 
 {% block body %}
+<form method="GET" action="{{url_for('u.index')}}">
+  <div class="form-group"> {{ form.url.label }} {{ form.url(class_="form-control") }} </div>
+  <div class="checkbox"> <label>{{form.extract(type='checkbox')}}{{form.extract.label}}</label></div>
+  <button type="submit" class="btn btn-default">Submit</button>
+</form>
+<br>
 <table class="table table-condensed table-bordered">
   <tr>
     <th>URL</th>
@@ -19,7 +25,6 @@
     </td>
   </tr>
 </table>
-
 {% if json_data_list %}
   <h3>JSON Data</h3>
   <table class="table table-condensed table-bordered">
@@ -28,7 +33,7 @@
   {% endfor %}
   </table>
 {% endif %}
-{% if entry.url_sets %}
+{% if entry and entry.url_sets %}
   <h3>URL Sets</h3>
   <table class="table table-condensed table-bordered">
     <tr>
@@ -37,19 +42,74 @@
       <th>URL</th>
     </tr>
     {% for url_set in entry.url_sets %}
-      <tr>
-	<td>{{url_set.id}}</td>
-	<td>{{url_set.set_type.value}}</td>
-	<td>
-	  URL:<br>{{url_set.extracted_url}}
-	  {% if url_set.extracted_urls %}
-	    <br>
-	    URLS:
-	    {{url_set.extracted_urls|join('<br>'|safe)}}
-	  {% endif %}
-	</td>
-      </tr>
+      {{url_set_table_cells(url_set=url_set)}}
+    {% endfor %}
+    {% for url_set in entry.src_url_set %}
+      {{url_set_table_cells(url_set=url_set)}}
+    {% endfor %}
+    {% for url_set in entry.src_url_sets %}
+      {{url_set_table_cells(url_set=url_set)}}
     {% endfor %}
   </table>
 {% endif %}
 {% endblock %}
+
+{% macro anchor_tag(href, text, class_="") %}
+<a class="{{class_}}" href="{{href}}">{{text}}</a>
+{% endmacro %}
+
+{% macro url_set_table_cells(url_set)%}
+  <tr>
+    <td>{{url_set.id}}</td>
+    <td>{{url_set.set_type.value}}</td>
+    <td>
+      {% if url_set.extracted_url %}
+	<p>
+	  {{anchor_tag(url_for('urlmodel.details_view', id=url_set.url.id), 'URL ' + url_set.url.id|string)}}:
+	  {{anchor_tag(url_set.url.value, url_set.url.value)}}
+	  <a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=url_set.url.value)}}">Details</a>
+	</p>
+	<p>
+	  {{anchor_tag(url_for('urlmodel.details_view', id=url_set.extracted_url.id), 'EURL ' + url_set.extracted_url.id|string)}}:
+	  {{anchor_tag(url_set.extracted_url.value, url_set.extracted_url.value)}}
+	  <a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=url_set.extracted_url.value)}}">Details</a>
+	</p>
+      {% endif %}
+      {% if url_set.extracted_urls %}
+	<br>
+	EURLS:
+	{{url_set.extracted_urls|join('<br>'|safe)}}
+      {% endif %}
+    </td>
+  </tr>
+  {% if url_set.json_data and url_set.json_data.value != 1%}
+    <tr>
+      <th>JSON Data</th>
+      <td colspan="2"><pre><code>{{url_set.json_data.value}}</code></pre></td>
+    </tr>
+  {% endif %}
+  {% if url_set.json_data and url_set.json_data.value != 1 %}
+    <tr>
+      <th>JSON Table</th>
+      <td colspan="2"><table class="table table-condensed table-bordered">
+	  {% for key, value in url_set.json_data.value.items() %}
+	    {% if value is not none and value != ''%}
+	      {% if value is mapping %}
+		<tr><th>{{key}}</th><td>
+		  <table class="table table-condensed table-bordered">
+		    {% for subkey, subvalue in value.items()%}
+		      {% if subvalue is not none and subvalue != ''%}
+			<tr><th>{{subkey}}</th><td><a href="#" class='tag-json-{{key}}-{{subkey}}'>{{subvalue}}</a></td></tr>
+		      {% endif %}
+		    {% endfor %}
+		  </table>
+		</td> </tr>
+	      {% else %}
+		<tr><th>{{key}}</th><td><a href="#" class='tag-json-{{key}}'>{{value}}</a></td></tr>
+	      {% endif %}
+	    {% endif %}
+	  {% endfor %}
+      </table></td>
+    </tr>
+  {% endif %}
+{% endmacro %}

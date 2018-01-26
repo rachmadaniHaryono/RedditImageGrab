@@ -143,6 +143,9 @@ def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cac
     processed_url_ms = []
     while not q.empty():
         url_m = q.get()
+        if not url_m:
+            log.debug('empty url model', url_model=url_m)
+            continue
         processed_url_ms.append(url_m)
         is_url_filtered = not bool(list(filter_url_models([url_m])))
         if is_url_filtered:
@@ -169,10 +172,15 @@ def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cac
             [data_set.append(x) for x in j.data if x not in data_set]
             j.data = data_set
             # data
-            url_sets_from_job = [x for x, _ in list(get_or_create_url_sets_from_extractor_job(job=j))]
+            url_sets_from_job = [
+                x for x, _ in list(sorted(
+                    get_or_create_url_sets_from_extractor_job(job=j),
+                    key=lambda j, _:j.extracted_url
+                ))
+            ]
 
         for item in url_sets_from_job:
-            if item.extracted_url not in processed_url_ms:
+            if item.extracted_url not in processed_url_ms and item.extracted_url:
                 processed_url_ms.append(item.extracted_url)
                 log.debug('added to queue', item=item.extracted_url)
                 q.put(item.extracted_url)
