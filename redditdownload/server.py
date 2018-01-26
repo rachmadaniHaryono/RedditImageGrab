@@ -26,6 +26,7 @@ def create_app(script_info=None):
     if reloader:
         app.jinja_env.auto_reload = True
     if debug:
+        app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
         app.config['LOGGER_HANDLER_POLICY'] = 'debug'
         app.debug = True  # additional step, may not work
         logging.basicConfig(level=logging.DEBUG)

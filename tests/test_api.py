@@ -62,4 +62,5 @@ def test_get_or_create_search_model(tmp_db):
 @vcr.use_cassette(record_mode='new_episodes')
 def test_get_search_result_on_index_page(tmp_db):
     res = list(api.get_search_result_on_index_page(subreddit='anime'))
-    assert res
+    res2 = list(api.get_search_result_on_index_page(subreddit='anime'))
+    assert len(res) == len(res2)

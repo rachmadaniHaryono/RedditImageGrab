@@ -2,7 +2,7 @@ from urllib.parse import urljoin
 import queue
 import re
 
-from gallery_dl.exception import NoExtractorError
+from gallery_dl.exception import NoExtractorError, AuthenticationError
 from gallery_dl.job import Job
 from redditdownload import models, reddit
 import structlog
@@ -94,12 +94,11 @@ def get_or_create_url_sets_from_extractor_job(job, session=None):
             if created and msg[1]:
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[1])[0]
         elif msg_id in [models.MESSAGE_URL, models.MESSAGE_QUEUE]:
+            kwargs = dict(set_type=msg_id, url=url_m)
             if msg[1] != url_m.value:
                 eurl_m = models.get_or_create(session, models.URLModel, value=msg[1])[0]
-            else:
-                eurl_m = url_m
-            m, created = models.get_or_create(
-                session, models.URLSet, url=url_m, set_type=msg_id, extracted_url=eurl_m)
+                kwargs['extracted_url'] = eurl_m
+            m, created = models.get_or_create(session, models.URLSet, **kwargs)
             if created and msg[2]:
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
         elif msg_id == models.MESSAGE_URLLIST:
@@ -135,14 +134,11 @@ def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cac
     url_ms.extend([x.permalink for x in search_model.thread_models])
     url_ms = list(set(url_ms))
     q = queue.Queue()
-    # filtered_url_ms = list(filter_url_models(url_ms))
-    # list(map(lambda x: q.put(x), filtered_url_ms))
     list(map(lambda x: q.put(x), url_ms))
     processed_url_ms = []
     while not q.empty():
         url_m = q.get()
-        if url_m not in processed_url_ms:
-            processed_url_ms.append(url_m)
+        processed_url_ms.append(url_m)
         is_url_filtered = not bool(list(filter_url_models([url_m])))
         if is_url_filtered:
             continue
@@ -158,17 +154,20 @@ def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cac
                 ne_url_m = models.get_or_create(session, models.NoExtractorURL, url=url_m)[0]
                 session.add(ne_url_m)
                 continue
-            j.run()
+            try:
+                j.run()
+            except AuthenticationError as e:
+                log.debug('No extractor', url_m=url_m, e=e)
+                continue
             # deduplicate data
             data_set = []
             [data_set.append(x) for x in j.data if x not in data_set]
             j.data = data_set
             # data
             url_sets_from_job = [x for x, _ in list(get_or_create_url_sets_from_extractor_job(job=j))]
-            session.add_all(url_sets_from_job)
 
         for item in url_sets_from_job:
-            if item.set_type == models.MESSAGE_QUEUE and item.extracted_url not in processed_url_ms:
+            if item.extracted_url not in processed_url_ms:
                 processed_url_ms.append(item.extracted_url)
                 log.debug('added to queue', item=item.extracted_url)
                 q.put(item.extracted_url)

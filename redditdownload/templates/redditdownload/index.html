@@ -14,16 +14,17 @@
     {% for entry in entries %}
       <tr><th>URL</th><td>{{entry[0].value}}</td><td>{{details_button(entry[0])}}</td></tr>
       {% for url_set in entry[1]%}
-	{% if entry[0].value != url_set.extracted_url.value %}
-	<tr><td>id:{{url_set.id}}, type:{{url_set.set_type}}</td</tr>
-	<tr><td> eurl:{{url_set.extracted_url.value}}</td></tr>
-	{% else %}
-	  <!--eurl:{{url_set.extracted_url.value}}-->
+	{% if url_set.set_type.value not in ['Directory', 'Version'] and url_set.extracted_url.value != entry[0].value %}
+	  <tr><th colspan="3">URL Set {{url_set.id}}, type {{url_set.set_type.value}}</th></tr>
+	  {% if url_set.extracted_url.value != entry[0].value %}
+	    <tr><th>EURL</th><td>{{url_set.extracted_url.value}}</td></tr>
+	  {% endif %}
+	  {% for e_url in url_set.extracted_urls %}
+	    <tr><th>EURLS</th><td>{{e_url.value}}</td></tr>
+	  {% endfor %}
 	{% endif %}
-	{% for e_url in url_set.extracted_urls %}
-	  <tr><td>type:{{url_set.set_type}},  eurls:{{e_url.value}}</td></tr>
-	{% endfor %}
       {% endfor %}
+      <tr><td>&nbsp;</td></tr>
     {% endfor %}
     </table>
   {{pagination_section(info=False)}}
