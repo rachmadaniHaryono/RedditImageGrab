@@ -1,7 +1,7 @@
 """views module."""
 import json
 
-from flask import request, url_for
+from flask import request, url_for, redirect
 from flask_admin import AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
 from flask_paginate import get_page_parameter, Pagination
@@ -28,6 +28,9 @@ class HomeView(AdminIndexView):
     @expose('/')
     def index(self):
         form = forms.IndexForm(request.args)
+        if form.subreddit.data and any(not item for key, item in request.args.items()):
+            new_args = {key: value for key, value in request.args.items() if value != ''}
+            return redirect(url_for('admin.index', **new_args))
         page = request.args.get(get_page_parameter(), type=int, default=1)
         template_kwargs = {'entries': None, 'form': form, }
         pagination_kwargs = {'page': page, 'show_single_page': False, 'bs_version': 3, }
@@ -51,13 +54,23 @@ class URLView(BaseView):
     @expose('/')
     def index(self):
         """View for single url."""
-        search_url = request.args.get('u', None)
-        kwargs = {}
+        form = forms.URLViewForm(request.args)
+        search_url = request.args.get('u', None) or form.url.data
+        if form.url.data and not search_url:
+            search_url = form.url.data
+        kwargs = {'form': form}
         if search_url:
             kwargs['search_url'] = search_url
-            entry = models.URLModel.query.filter_by(value=search_url).one_or_none()
-            kwargs['entry'] = entry
-            kwargs['json_data_list'] = [json.dumps(x.value, indent=2, sort_keys=True) for x in entry.json_data_list]
+            if form.extract.data:
+                pass
+            else:
+                entry = models.URLModel.query.filter_by(value=search_url).one_or_none()
+                kwargs['entry'] = entry
+                if entry is not None:
+                    kwargs['json_data_list'] = \
+                        [json.dumps(x.value, indent=2, sort_keys=True) for x in entry.json_data_list]
+                else:
+                    kwargs['json_data_list'] = None
         return self.render(
             'redditdownload/url_view.html', **kwargs)
 
