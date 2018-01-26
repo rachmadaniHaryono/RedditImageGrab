@@ -147,10 +147,11 @@ class URLSet(db.Model):
     set_type = db.Column(ChoiceType(TYPES))
     url_id = db.Column(db.Integer, db.ForeignKey('url_model.id'))
     url = relationship(
-        'URLModel', lazy='subquery',
+        'URLModel', lazy='subquery', foreign_keys=[url_id],
         backref=db.backref('url_sets', lazy=True))
+    extracted_url_id = db.Column(db.Integer, db.ForeignKey('url_model.id'))
     extracted_url = relationship(
-        'URLModel', lazy='subquery',
+        'URLModel', lazy='subquery', foreign_keys=[extracted_url_id],
         backref=db.backref('src_url_set', lazy=True))
     extracted_urls = relationship(
         'URLModel', secondary=extracted_urls, lazy='subquery',

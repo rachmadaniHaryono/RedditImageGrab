@@ -19,10 +19,37 @@
     </td>
   </tr>
 </table>
-<h3>JSON Data</h3>
-<table>
-{% for json_data in json_data_list %}
-  <tr><td><pre><code class="json">{{json_data}}</code></pre></td></tr>
-{% endfor %}
-</table>
+
+{% if json_data_list %}
+  <h3>JSON Data</h3>
+  <table class="table table-condensed table-bordered">
+  {% for json_data in json_data_list %}
+    <tr><td><pre><code class="json">{{json_data}}</code></pre></td></tr>
+  {% endfor %}
+  </table>
+{% endif %}
+{% if entry.url_sets %}
+  <h3>URL Sets</h3>
+  <table class="table table-condensed table-bordered">
+    <tr>
+      <th>ID</th>
+      <th>Type</th>
+      <th>URL</th>
+    </tr>
+    {% for url_set in entry.url_sets %}
+      <tr>
+	<td>{{url_set.id}}</td>
+	<td>{{url_set.set_type.value}}</td>
+	<td>
+	  URL:<br>{{url_set.extracted_url}}
+	  {% if url_set.extracted_urls %}
+	    <br>
+	    URLS:
+	    {{url_set.extracted_urls|join('<br>'|safe)}}
+	  {% endif %}
+	</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
 {% endblock %}

@@ -45,10 +45,14 @@ def test_get_or_create_url_sets_from_extractor_job(tmp_db):
     data_set = []
     [data_set.append(x) for x in j.data if x not in data_set]
     j.data = data_set
-    res = list(api.get_or_create_url_sets_from_extractor_job(job=j))
+    url_m, _ = models.get_or_create(tmp_db.session, models.URLModel, value=j.url)
+    res = list(api.get_or_create_url_sets_from_extractor_job(job=j, url_model=url_m, session=tmp_db.session))
     assert res
-    assert all(x[0] for x in res)
+    assert all(x[1] for x in res)
     assert len(res) < 78
+    tmp_db.session.commit()
+    res2 = list(api.get_or_create_url_sets_from_extractor_job(job=j, url_model=url_m, session=tmp_db.session))
+    assert all(not x[1] for x in res2)
 
 
 @pytest.mark.no_travis
@@ -61,6 +65,6 @@ def test_get_or_create_search_model(tmp_db):
 @pytest.mark.no_travis
 @vcr.use_cassette(record_mode='new_episodes')
 def test_get_search_result_on_index_page(tmp_db):
-    res = list(api.get_search_result_on_index_page(subreddit='anime'))
+    res = list(api.get_search_result_on_index_page(subreddit='ecchi'))
     res2 = list(api.get_search_result_on_index_page(subreddit='anime'))
     assert len(res) == len(res2)

@@ -83,9 +83,12 @@ def get_or_create_url_set(session, url, extracted_urls):
     return instance, created
 
 
-def get_or_create_url_sets_from_extractor_job(job, session=None):
+def get_or_create_url_sets_from_extractor_job(job, url_model=None, session=None):
     session = models.db.session if session is None else session
-    url_m, _ = models.get_or_create(session, models.URLModel, value=job.url)
+    if url_model is None:
+        url_m, _ = models.get_or_create(session, models.URLModel, value=job.url)
+    else:
+        url_m = url_model
     for msg in job.data:
         msg_id = str(msg[0])
         # log.debug('processed msg', msg=msg)
@@ -98,6 +101,7 @@ def get_or_create_url_sets_from_extractor_job(job, session=None):
             if msg[1] != url_m.value:
                 eurl_m = models.get_or_create(session, models.URLModel, value=msg[1])[0]
                 kwargs['extracted_url'] = eurl_m
+                session.add(eurl_m)
             m, created = models.get_or_create(session, models.URLSet, **kwargs)
             if created and msg[2]:
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
@@ -106,6 +110,7 @@ def get_or_create_url_sets_from_extractor_job(job, session=None):
             for url in msg[1]:
                 if url != url_m.value:
                     eurl_m = models.get_or_create(session, models.URLModel, value=url)
+                    session.add(eurl_m)
                 else:
                     eurl_m = url_m
                 eurl_ms.append(eurl_m)
