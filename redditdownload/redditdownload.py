@@ -35,7 +35,7 @@ def request(url, *ar, **kwa):
     _retries = kwa.pop('_retries', 4)
     # _retry_pause = kwa.pop('_retry_pause', 0)
     res = None
-    for _try in xrange(_retries):
+    for _try in range(_retries):
         try:
             res = urlopen(url, *ar, **kwa)
         except Exception as exc:
