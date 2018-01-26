@@ -1,20 +1,16 @@
 #!/usr/bin/env python
 """test redditdownload module."""
+from os import getcwd
+from unittest import mock, TestCase
 import json
 import os
 import sys
 import unittest
 
-try:  # py2
-    from mock import patch, MagicMock
-    import mock
-except ImportError:  # py3
-    from unittest import mock
-
 import pytest
 
 from redditdownload import redditdownload
-from redditdownload.redditdownload import download_from_url
+from redditdownload.redditdownload import download_from_url, parse_args, process_imgur_url
 
 FILE_FOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'files')
 
@@ -38,15 +34,15 @@ class TestMainMethod(unittest.TestCase):
         with pytest.raises(SystemExit):
             redditdownload.main()
 
-    @patch('redditdownload.redditdownload.download_from_url')
-    @patch('redditdownload.redditdownload.getitems', side_effect=[get_mock_items(),{}])
+    @mock.patch('redditdownload.redditdownload.download_from_url')
+    @mock.patch('redditdownload.redditdownload.getitems', side_effect=[get_mock_items(), {}])
     def test_update_flag(self, mock_get_items, mock_download_func):
         """test update flag.
 
         it test if update flag is raised properly and if get_items func will call twice,
         because download_func only raise FileExistsException."""
         test_argv = ['redditdl.py', 'cats', '--num', '2', '--update']
-        with patch.object(sys, 'argv', test_argv):
+        with mock.patch.object(sys, 'argv', test_argv):
             # run the main function.
             redditdownload.main()
 
@@ -64,6 +60,7 @@ class TestMainMethod(unittest.TestCase):
             assert mock_get_items.call_count == 2
             assert mock_download_func.call_count == 2
 
+
 class TestDownloadFromURLMethods(unittest.TestCase):
 
     @mock.patch('redditdownload.redditupload.download')
@@ -74,10 +71,46 @@ class TestDownloadFromURLMethods(unittest.TestCase):
         mock_url = (
             'https://i.reddituploads.com/aaa5af49dea641718b1428d7b0c46bec'
             '?fit=max&h=1536&w=1536&s=6f08d532dc8e81ea8d4a85e6cac643b2')
-        mock_dest_file  = mock.Mock()
+        mock_dest_file = mock.Mock()
         mock_pathexist.return_value = False
 
         download_from_url(mock_url, mock_dest_file)
 
         mock_pathexist.assert_called_once_with(mock_dest_file)
         mock_download_func.assert_called_once_with(mock_url, mock.ANY)
+
+
+class TestParseArgs(TestCase):
+    def test_simple_args(self):
+        ARGS = parse_args(['funny'])
+        self.assertEqual(ARGS.reddit, 'funny')
+        self.assertEqual(ARGS.dir, getcwd())
+
+    def test_multiple_reddit_plus(self):
+        ARGS = parse_args(['funny+anime'])
+        self.assertEqual(ARGS.reddit, 'funny+anime')
+
+    def test_nsfw_sfw_arg(self):
+        ARGS = parse_args(['--nsfw --sfw'])
+        self.assertFalse(ARGS.nsfw)
+        self.assertFalse(ARGS.sfw)
+
+
+class TestProcessImgurUrl(TestCase):
+    def setUp(self):
+        self.album_url = 'http://imgur.com/a/WobUS'
+        self.album_url_member = 'http://i.imgur.com/qVOLIba.jpg'
+
+        # single url with extension
+        self.single_url = 'https://i.imgur.com/XdWGz14.jpg'
+
+    def test_extract_album(self):
+        result = process_imgur_url(self.album_url)
+        self.assertIsInstance(result, list)
+        self.assertIn(self.album_url_member, result)
+
+    def test_extract_single(self):
+        result = process_imgur_url(self.single_url)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        self.assertIn(self.single_url, result)
