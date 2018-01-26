@@ -9,27 +9,24 @@
 </form>
 {% if entries %}
 <div>
-  {{pagination_section()}}
-  <table class="table table-condensed table-bordered">
+  {{pagination_section(info=False)}}
+    <table class="table table-condensed table-bordered">
     {% for entry in entries %}
-      <tr><th>URL</th>
-	<td>{{anchor_tag(entry.url.value, entry.url.value)}}</td>
-	<td>{{details_button(entry.url)}}</td>
-      </tr>
-      {% if entry.extracted_urls and entry.extracted_urls.0.value != entry.url.value %}
-      <tr><td>&nbsp;</td><th colspan="2">Extracted URLS</th></tr>
-      {% for e_url in entry.extracted_urls %}
-	<tr><td>&nbsp;</td><td colspan="1">{{anchor_tag(e_url.value, e_url.value)}}</td>
-	  <td>{{details_button(e_url)}}</td>
-	</tr>
+      <tr><th>URL</th><td>{{entry[0].value}}</td><td>{{details_button(entry[0])}}</td></tr>
+      {% for url_set in entry[1]%}
+	{% if entry[0].value != url_set.extracted_url.value %}
+	<tr><td>id:{{url_set.id}}, type:{{url_set.set_type}}</td</tr>
+	<tr><td> eurl:{{url_set.extracted_url.value}}</td></tr>
+	{% else %}
+	  <!--eurl:{{url_set.extracted_url.value}}-->
+	{% endif %}
+	{% for e_url in url_set.extracted_urls %}
+	  <tr><td>type:{{url_set.set_type}},  eurls:{{e_url.value}}</td></tr>
+	{% endfor %}
       {% endfor %}
-      {% endif%}
-      {% if not loop.last %}
-      <tr><td colspan="3">&nbsp;</td></tr>
-      {% endif %}
     {% endfor %}
-  </table>
-  {{pagination_section()}}
+    </table>
+  {{pagination_section(info=False)}}
 </div>
 {% endif %}
 {% endblock %}

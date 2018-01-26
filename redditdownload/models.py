@@ -9,9 +9,12 @@ from sqlalchemy.types import TIMESTAMP
 from sqlalchemy_utils.types import URLType, JSONType, ChoiceType
 import structlog
 
-
+MESSAGE_VERSION = str(Message.Version)
+MESSAGE_DIRECTORY = str(Message.Directory)
+MESSAGE_URL = str(Message.Url)
+MESSAGE_QUEUE = str(Message.Queue)
 # fix for gallery_dl error on Message module
-MESSAGE_URLLIST = Message.Urllist if hasattr(Message, 'Urllist') else 7
+MESSAGE_URLLIST = str(Message.Urllist) if hasattr(Message, 'Urllist') else '7'
 
 log = structlog.getLogger(__name__)
 db = SQLAlchemy()
@@ -69,9 +72,6 @@ class SearchModel(db.Model):
     json_data_list = relationship(
         'JSONData', secondary=search_model_json_data_sets, lazy='subquery',
         backref=db.backref('search_models', lazy=True))
-    urls = relationship(
-        'URLModel', secondary=search_model_urls, lazy='subquery',
-        backref=db.backref('search_models', lazy=True))
 
 
 class ThreadModel(db.Model):
@@ -80,8 +80,12 @@ class ThreadModel(db.Model):
     thread_id = db.Column(db.String, nullable=False)
     url_id = db.Column(db.Integer, db.ForeignKey('url_model.id'))
     url = relationship(
-        'URLModel', lazy='subquery',
+        'URLModel', foreign_keys=[url_id], lazy='subquery',
         backref=db.backref('thread_models', lazy=True))
+    permalink_id = db.Column(db.Integer, db.ForeignKey('url_model.id'))
+    permalink = relationship(
+        'URLModel', foreign_keys=[permalink_id], lazy='subquery',
+        backref=db.backref('permalink_thread_models', lazy=True))
     json_data_list = relationship(
         'JSONData', secondary=thread_model_json_data_sets, lazy='subquery',
         backref=db.backref('thread_models', lazy=True))
@@ -133,10 +137,10 @@ class DeniedURLFilter(db.Model):
 
 class URLSet(db.Model):
     TYPES = [
-        (Message.Version, 'Version'),
-        (Message.Directory, 'Directory'),
-        (Message.Url, 'URL'),
-        (Message.Queue, 'Queue'),
+        (MESSAGE_VERSION, 'Version'),
+        (MESSAGE_DIRECTORY, 'Directory'),
+        (MESSAGE_URL, 'URL'),
+        (MESSAGE_QUEUE, 'Queue'),
         (MESSAGE_URLLIST, 'URL List'),
     ]
     id = db.Column(db.Integer, primary_key=True)

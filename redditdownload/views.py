@@ -33,16 +33,16 @@ class HomeView(AdminIndexView):
         pagination_kwargs = {'page': page, 'show_single_page': False, 'bs_version': 3, }
         if form.subreddit.data:
             pagination_kwargs['per_page'] = 1
-            url_set_data = api.get_or_create_url_sets(
+            res = api.get_search_result_on_index_page(
                 form.subreddit.data,
                 session=models.db.session,
-                page=page, per_page=0, disable_cache=form.disable_cache.data,
+                page=page,
+                disable_cache=form.disable_cache.data,
                 sort_mode=form.sort_mode.data
             )
-            if any(x[1] for x in url_set_data):
-                models.db.session.add_all([x[0] for x in url_set_data])
-                models.db.session.commit()
-            template_kwargs['entries'] = [x[0] for x in url_set_data]
+            res = list(sorted(res, key=lambda x: x[0].value))
+            models.db.session.commit()
+            template_kwargs['entries'] = res
         template_kwargs['pagination'] = Pagination(**pagination_kwargs)
         return self.render('redditdownload/index.html', **template_kwargs)
 

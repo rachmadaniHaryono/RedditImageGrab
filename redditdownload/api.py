@@ -1,6 +1,7 @@
+from urllib.parse import urljoin
+import queue
 import re
 
-from gallery_dl.extractor.message import Message
 from gallery_dl.exception import NoExtractorError
 from gallery_dl.job import Job
 from redditdownload import models, reddit
@@ -57,10 +58,14 @@ def filter_url_models(url_models):
 def get_or_create_thread_model_from_json_data(json_data):
     json_data_m, _ = models.get_or_create(models.db.session, models.JSONData, value=json_data)
     url_m, _ = models.get_or_create(models.db.session, models.URLModel, value=json_data['data']['url'])
+    permalink_m_value = urljoin('https://www.reddit.com', json_data['data']['permalink'])
+    permalink_m, m = models.get_or_create(models.db.session, models.URLModel, value=permalink_m_value)
     kwargs = {'thread_id': json_data['data']['id']}
     m, created = models.get_or_create(models.db.session, models.ThreadModel, **kwargs)
-    m.url = url_m
-    m.json_data = json_data_m
+    if created:
+        m.json_data = json_data_m
+        m.permalink = permalink_m
+        m.url = url_m
     return m, created
 
 
@@ -82,26 +87,31 @@ def get_or_create_url_sets_from_extractor_job(job, session=None):
     session = models.db.session if session is None else session
     url_m, _ = models.get_or_create(session, models.URLModel, value=job.url)
     for msg in job.data:
-        msg_id = msg[0]
-        if msg_id in [Message.Version, Message.Directory]:
+        msg_id = str(msg[0])
+        # log.debug('processed msg', msg=msg)
+        if msg_id in [models.MESSAGE_VERSION, models.MESSAGE_DIRECTORY]:
             m, created = models.get_or_create(session, models.URLSet, url=url_m, set_type=msg_id)
             if created and msg[1]:
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[1])[0]
-            yield m, created
-        elif msg_id in [Message.Url, Message.Queue]:
-            eurl_m = models.get_or_create(session, models.URLModel, value=msg[1])[0]
+        elif msg_id in [models.MESSAGE_URL, models.MESSAGE_QUEUE]:
+            if msg[1] != url_m.value:
+                eurl_m = models.get_or_create(session, models.URLModel, value=msg[1])[0]
+            else:
+                eurl_m = url_m
             m, created = models.get_or_create(
                 session, models.URLSet, url=url_m, set_type=msg_id, extracted_url=eurl_m)
             if created and msg[2]:
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
-            yield m, created
-        elif msg_id == Message.Urllist:
+        elif msg_id == models.MESSAGE_URLLIST:
             eurl_ms = []
             for url in msg[1]:
-                eurl_m = models.get_or_create(session, models.URLModel, value=url)
+                if url != url_m.value:
+                    eurl_m = models.get_or_create(session, models.URLModel, value=url)
+                else:
+                    eurl_m = url_m
                 eurl_ms.append(eurl_m)
             m, created = models.get_or_create(
-                session, models.URLSet, url=url_m, set_type=msg_id, extracted_url=eurl_m)
+                session, models.URLSet, url=url_m, set_type=msg_id)
             if created:
                 m.extracted_urls = eurl_ms
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
@@ -109,82 +119,57 @@ def get_or_create_url_sets_from_extractor_job(job, session=None):
                 m.json_data = models.get_or_create(session, models.JSONData, value=msg[2])[0]
             else:
                 raise NotImplementedError
-            yield m, created
         else:
             raise ValueError('Unknown message type: {}'.format(msg_id))
+        session.add(m)
+        yield m, created
 
 
-def get_or_create_url_sets(subreddit, session=None, page=1, per_page=0, disable_cache=False, sort_mode=None):
+def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cache=False, sort_mode=None):
     session = models.db.session if session is None else session
-    res = []
-    if per_page == 0:
-        search_model, search_model_created = get_or_create_search_model(
-            subreddit, sort_mode=sort_mode, disable_cache=disable_cache, page=page, session=session)
-    else:
-        raise NotImplementedError
-    if search_model.urls:
-        for url_m in search_model.urls:
-            for url_set_m in url_m.url_sets:
-                res.append([url_set_m, False])
-        return res
+    search_model, search_model_created = get_or_create_search_model(
+        subreddit, sort_mode=sort_mode, disable_cache=disable_cache, page=page, session=session)
+    session.add(search_model)
+    # collect all url models
     url_ms = [x.url for x in search_model.thread_models]
-    if per_page == 0:
-        filtered_url_ms = list(filter_url_models(url_ms))
-        new_url_ms = []
-        for url_m in filtered_url_ms:
-            is_url_filtered = not bool(list(filter_url_models([url_m])))
-            if is_url_filtered:
-                continue
-            log.debug('processing url', url_m=url_m)
+    url_ms.extend([x.permalink for x in search_model.thread_models])
+    url_ms = list(set(url_ms))
+    q = queue.Queue()
+    # filtered_url_ms = list(filter_url_models(url_ms))
+    # list(map(lambda x: q.put(x), filtered_url_ms))
+    list(map(lambda x: q.put(x), url_ms))
+    processed_url_ms = []
+    while not q.empty():
+        url_m = q.get()
+        if url_m not in processed_url_ms:
+            processed_url_ms.append(url_m)
+        is_url_filtered = not bool(list(filter_url_models([url_m])))
+        if is_url_filtered:
+            continue
+        instances = session.query(models.URLSet).filter_by(url=url_m).all()
+        if instances:
+            url_sets_from_job = instances
+        else:
             try:
                 j = CacheJob(url_m.value)
+                log.debug('processing url', url_m=url_m)
             except NoExtractorError as e:
                 log.debug('No extractor', url_m=url_m, e=e)
-                models.get_or_create(session, models.NoExtractorURL, url=url_m)
+                ne_url_m = models.get_or_create(session, models.NoExtractorURL, url=url_m)[0]
+                session.add(ne_url_m)
                 continue
             j.run()
-            message_urllist_type = Message.Urllist if hasattr(Message, 'Urllist') else 7
-            for msg in j.data:
-                log.debug('processing msg', msg=msg)
-                if msg[0] == Message.Version:
-                    pass
-                elif msg[0] == Message.Directory:
-                    url_m.json_data_list.append(models.get_or_create(session, models.JSONData, value=msg)[0])
-                elif msg[0] == Message.Url:
-                    e_m, _ = models.get_or_create(session, models.URLModel, value=msg[1])
-                    if not bool(list(filter_url_models([e_m]))):
-                        continue
-                    if msg[2]:
-                        e_m.json_data_list.append(models.get_or_create(session, models.JSONData, value=msg[2])[0])
-                    res.append(get_or_create_url_set(session, url=url_m, extracted_urls=[e_m]))
-                elif msg[0] == message_urllist_type:
-                    e_ms = []
-                    for msg_url in msg[1]:
-                        e_m = models.get_or_create(session, models.URLModel, value=msg[1])[0]
-                        if not bool(list(filter_url_models([e_m]))):
-                            continue
-                        e_ms.append()
-                    url_list_url_set_model, url_list_url_set_model_created = \
-                        get_or_create_url_set(session, url=url_m, extracted_urls=e_ms)
-                    if msg[2]:
-                        url_list_url_set_model.json_data_list.append(
-                            models.get_or_create(session, models.JSONData, value=msg[2])[0])
-                    res.append(url_list_url_set_model, url_list_url_set_model_created)
-                elif msg[0] == Message.Queue:
-                    e_m, _ = models.get_or_create(session, models.URLModel, value=msg[1])
-                    if not bool(list(filter_url_models([e_m]))):
-                        continue
-                    if msg[2]:
-                        e_m.json_data_list.append(models.get_or_create(session, models.JSONData, value=msg[2])[0])
-                    res.append(get_or_create_url_set(session, url=url_m, extracted_urls=[e_m]))
-                    url_ms.append(e_m)
-                    new_url_ms.append(e_m)
-                else:
-                    raise ValueError('Unknown message type:{}'.format(msg[0]))
-        if url_ms:
-            url_ms = set(url_ms)
-            search_model.urls.extend(x for x in url_ms if x not in search_model.urls)
-            session.add(search_model)
-    else:
-        raise NotImplementedError
-    return res
+            # deduplicate data
+            data_set = []
+            [data_set.append(x) for x in j.data if x not in data_set]
+            j.data = data_set
+            # data
+            url_sets_from_job = [x for x, _ in list(get_or_create_url_sets_from_extractor_job(job=j))]
+            session.add_all(url_sets_from_job)
+
+        for item in url_sets_from_job:
+            if item.set_type == models.MESSAGE_QUEUE and item.extracted_url not in processed_url_ms:
+                processed_url_ms.append(item.extracted_url)
+                log.debug('added to queue', item=item.extracted_url)
+                q.put(item.extracted_url)
+        yield (url_m, url_sets_from_job)

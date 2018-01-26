@@ -49,3 +49,17 @@ def test_get_or_create_url_sets_from_extractor_job(tmp_db):
     assert res
     assert all(x[0] for x in res)
     assert len(res) < 78
+
+
+@pytest.mark.no_travis
+@vcr.use_cassette(record_mode='new_episodes')
+def test_get_or_create_search_model(tmp_db):
+    res = api.get_or_create_search_model('cats')
+    assert res
+
+
+@pytest.mark.no_travis
+@vcr.use_cassette(record_mode='new_episodes')
+def test_get_search_result_on_index_page(tmp_db):
+    res = list(api.get_search_result_on_index_page(subreddit='anime'))
+    assert res

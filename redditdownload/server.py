@@ -49,7 +49,8 @@ def create_app(script_info=None):
     app_admin.add_view(views.URLModelView(models.URLModel, session, name='URL History'))
     app_admin.add_view(views.JSONDataView(models.JSONData, session, name='JSON Data'))
     model_list = [
-        (models.DeniedURLFilter, 'Denied URL Filter'),
+        (models.DeniedURLFilter, 'URL Filter'),
+        (models.URLSet, 'URL Set'),
         # (models.JSONData, 'JSON Data')
     ]
     for model_item in model_list:
