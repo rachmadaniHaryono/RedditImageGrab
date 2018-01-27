@@ -175,7 +175,7 @@ def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cac
             url_sets_from_job = [
                 x for x, _ in list(sorted(
                     get_or_create_url_sets_from_extractor_job(job=j),
-                    key=lambda j, _:j.extracted_url
+                    key=lambda k: k[0].extracted_url.value if k[0].extracted_url else ''
                 ))
             ]
 
