@@ -137,7 +137,7 @@ _image_id: null
 _name: rdl
 _search_separator: +
 _search_url: http://127.0.0.1:5004/?subreddit=%tags%&page=%index%
-_tag_classnames_to_namespaces: {}
+_tag_classnames_to_namespaces: {tag-json-source: source, tag-json-title: title}
 _thumb_classname: details
 ```
 
