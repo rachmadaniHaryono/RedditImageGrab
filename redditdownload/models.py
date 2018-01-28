@@ -50,6 +50,10 @@ thread_model_json_data_sets = db.Table(
     'thread_model_json_data_sets',
     db.Column('thread_model_id', db.Integer, db.ForeignKey('thread_model.id'), primary_key=True),
     db.Column('json_id', db.Integer, db.ForeignKey('json_data.id'), primary_key=True))
+thread_model_url_sets = db.Table(
+    'thread_model_url_sets',
+    db.Column('thread_model_id', db.Integer, db.ForeignKey('thread_model.id'), primary_key=True),
+    db.Column('url_set_id', db.Integer, db.ForeignKey('url_set.id'), primary_key=True))
 
 
 class DBVersion(db.Model):
@@ -88,6 +92,9 @@ class ThreadModel(db.Model):
         backref=db.backref('permalink_thread_models', lazy=True))
     json_data_list = relationship(
         'JSONData', secondary=thread_model_json_data_sets, lazy='subquery',
+        backref=db.backref('thread_models', lazy=True))
+    url_sets = relationship(
+        'URLSet', secondary=thread_model_url_sets, lazy='subquery',
         backref=db.backref('thread_models', lazy=True))
 
 
