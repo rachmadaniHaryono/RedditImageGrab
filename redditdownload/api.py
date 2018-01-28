@@ -129,6 +129,63 @@ def get_or_create_url_sets_from_extractor_job(job, url_model=None, session=None)
         yield m, created
 
 
+def extract_url_set_from_url_models(url_models, session):
+    """Extract url sets from url models.
+
+
+    Returns:
+        yield list of tuple contain url model and the extracted url sets.
+    """
+    session = models.db.session if session is None else session
+    q = queue.Queue()
+    list(map(lambda x: q.put(x), url_models))
+    processed_url_ms = []
+    while not q.empty():
+        url_m = q.get()
+        if not url_m:
+            log.debug('empty url model', url_model=url_m)
+            continue
+        processed_url_ms.append(url_m)
+        is_url_filtered = not bool(list(filter_url_models([url_m])))
+        if is_url_filtered:
+            continue
+        instances = session.query(models.URLSet).filter_by(url=url_m).all()
+        if instances:
+            url_sets_from_job = instances
+        else:
+            try:
+                j = CacheJob(url_m.value)
+                log.debug('processing url', url_m=url_m)
+            except NoExtractorError as e:
+                log.debug('No extractor', url_m=url_m, e=e)
+                ne_url_m = models.get_or_create(session, models.NoExtractorURL, url=url_m)[0]
+                session.add(ne_url_m)
+                continue
+            try:
+                j.run()
+            except AuthenticationError as e:
+                log.debug('No extractor', url_m=url_m, e=e)
+                continue
+            # deduplicate data
+            data_set = []
+            [data_set.append(x) for x in j.data if x not in data_set]
+            j.data = data_set
+            # data
+            url_sets_from_job = [
+                x for x, _ in list(sorted(
+                    get_or_create_url_sets_from_extractor_job(job=j),
+                    key=lambda k: k[0].extracted_url.value if k[0].extracted_url else ''
+                ))
+            ]
+
+        for item in url_sets_from_job:
+            if item.extracted_url not in processed_url_ms and item.extracted_url:
+                processed_url_ms.append(item.extracted_url)
+                log.debug('added to queue', item=item.extracted_url)
+                q.put(item.extracted_url)
+        yield (url_m, url_sets_from_job)
+
+
 def get_search_result_on_index_page(subreddit, session=None, page=1, disable_cache=False, sort_mode=None):
     session = models.db.session if session is None else session
     search_model, search_model_created = get_or_create_search_model(
