@@ -103,6 +103,7 @@ setup_kwargs = dict(
         ],
         'server': [
             'Flask-Admin>=1.5.0',
+            'Flask-DebugToolbar>=0.10.1',
             'flask-paginate==0.5.1',
             'Flask-SQLAlchemy>=2.3.1',
             'Flask-WTF>=0.14.2',
