@@ -1,7 +1,7 @@
 """views module."""
 import json
 
-from flask import request, url_for, redirect
+from flask import request, url_for, redirect, flash
 from flask_admin import AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
 from flask_paginate import get_page_parameter, Pagination
@@ -10,6 +10,7 @@ import humanize
 import structlog
 
 from redditdownload import forms, models, api
+from redditdownload.exception import NoAfterThreadIdError
 
 
 log = structlog.getLogger(__name__)
@@ -36,15 +37,20 @@ class HomeView(AdminIndexView):
         pagination_kwargs = {'page': page, 'show_single_page': False, 'bs_version': 3, }
         if form.subreddit.data:
             pagination_kwargs['per_page'] = 1
-            search_model = api.get_search_result_on_index_page(
-                form.subreddit.data,
-                session=models.db.session,
-                page=page,
-                disable_cache=form.disable_cache.data,
-                sort_mode=form.sort_mode.data
-            )
+            try:
+                search_model = api.get_search_result_on_index_page(
+                    form.subreddit.data,
+                    session=models.db.session,
+                    page=page,
+                    disable_cache=form.disable_cache.data,
+                    sort_mode=form.sort_mode.data
+                )
+                template_kwargs['entry'] = search_model
+            except NoAfterThreadIdError:
+                msg = 'No after thread id found.'
+                log.debug(msg)
+                flash(msg, 'error')
             models.db.session.commit()
-            template_kwargs['entry'] = search_model
         template_kwargs['pagination'] = Pagination(**pagination_kwargs)
         return self.render('redditdownload/index.html', **template_kwargs)
 
