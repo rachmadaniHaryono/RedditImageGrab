@@ -30,12 +30,12 @@ def get_or_create_search_model(subreddit, sort_mode=None, disable_cache=False, p
     getitems_kwargs = {'subreddit': subreddit, 'reddit_sort': sort_mode, 'return_raw_data': True}
     if page > 1:
         prev_page_m, _ = get_or_create_search_model(
-            subreddit=subreddit, sort_mode=sort_mode, page=page - 1, session=session)
+            subreddit=subreddit, sort_mode=sort_mode, page=page - 1, session=session, disable_cache=disable_cache)
         if not prev_page_m.after_thread_id:
             raise NoAfterThreadIdError
         previd = prev_page_m.after_thread_id.split('t3_')[1]
         getitems_kwargs['previd'] = previd
-    if created:
+    if created or disable_cache:
         log.debug('getitems kwargs', **getitems_kwargs)
         reddit_data = reddit.getitems(**getitems_kwargs)
         data_children = reddit_data['data'].pop('children')
