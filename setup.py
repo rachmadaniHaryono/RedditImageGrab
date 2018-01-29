@@ -65,7 +65,7 @@ class Tox(test):
 
 setup_kwargs = dict(
     name='redditdownload',
-    version='2.0.0',
+    version='2.1.0',
     description=SHORT_DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     # classifiers=[],
