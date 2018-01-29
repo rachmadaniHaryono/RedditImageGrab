@@ -1,0 +1,2 @@
+class NoAfterThreadIdError(Exception):
+    pass
