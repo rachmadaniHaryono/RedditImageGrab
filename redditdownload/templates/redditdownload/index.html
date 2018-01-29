@@ -15,7 +15,7 @@
 	<tr>
 	  <th>Permalink</th>
 	  <td>{{anchor_tag(thread_model.permalink.value, thread_model.permalink.value)}}</td>
-	  <td>{{details_button(thread_model.permalink)}}</td>
+	  <td>{{details_button(thread_model.permalink, class_="permalink-details")}}</td>
 	</tr>
 	<tr>
 	  <th>URL</th>
@@ -25,7 +25,6 @@
 	<tr> <th colspan="3">URL Sets</th> </tr>
       {% for url_set in thread_model.url_sets %}
 	{% if url_set.set_type.value not in ['Directory', 'Version'] and url_set.extracted_url.value != url_set.url.value %}
-	  <!--<tr><th colspan="3">URL Set {{url_set.id}}, type {{url_set.set_type.value}}</th></tr>-->
 	  {% if url_set.extracted_url.value and url_set.extracted_url != thread_model.url %}
 	    <tr>
 	      <td colspan="2">{{anchor_tag(url_set.extracted_url.value, url_set.extracted_url.value)}}</td>
@@ -47,8 +46,8 @@
 {% endif %}
 {% endblock %}
 
-{% macro details_button(url_m)%}
-<a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=url_m.value)}}">Details</a>
+{% macro details_button(url_m, class_="details")%}
+<a class="btn btn-default btn-xs {{class_}}" href="{{url_for('u.index', u=url_m.value)}}">Details</a>
 {% endmacro %}
 
 {% macro anchor_tag(href, text, class_="") %}
