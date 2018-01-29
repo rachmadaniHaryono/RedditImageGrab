@@ -46,13 +46,13 @@ def create_app(script_info=None):
         app, name='Reddit Images Download', template_mode='bootstrap3',
         index_view=views.HomeView(name='Home', template=admin_templ, url='/'))
     app_admin.add_view(views.URLView(name='URL Viewer', endpoint='u'))
-    app_admin.add_view(views.SearchModelView(models.SearchModel, session, name='Search History'))
-    app_admin.add_view(views.URLModelView(models.URLModel, session, name='URL History'))
+    app_admin.add_view(views.SearchModelView(models.SearchModel, session, name='Search History', category='History'))
+    app_admin.add_view(views.URLModelView(models.URLModel, session, name='URL History', category='History'))
     app_admin.add_view(views.JSONDataView(models.JSONData, session, name='JSON Data'))
     model_list = [
+        (models.ThreadModel, 'Thread History'),
         (models.DeniedURLFilter, 'URL Filter'),
         (models.URLSet, 'URL Set'),
-        # (models.JSONData, 'JSON Data')
     ]
     for model_item in model_list:
         if len(model_item) == 2:
