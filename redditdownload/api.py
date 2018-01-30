@@ -1,13 +1,18 @@
 from urllib.parse import urljoin
 import queue
+import inspect
+import os
 import re
 
 from gallery_dl.exception import NoExtractorError, AuthenticationError
 from gallery_dl.job import Job
+from gallery_dl import extractor as gallery_dl_extractor
 from redditdownload import models, reddit
 import structlog
+from yapsy.PluginManager import PluginManager
 
 from redditdownload.exception import NoAfterThreadIdError
+from redditdownload import extractor as reddit_dl_extractor
 
 
 log = structlog.getLogger(__name__)
@@ -15,7 +20,24 @@ log = structlog.getLogger(__name__)
 
 class CacheJob(Job):
 
-    def __init__(self, url, parent=None):
+    def __init__(self, url, parent=None, extractor_paths=None):
+        if extractor_paths is None:
+            extractor_paths = []
+        extractor_paths.append(os.path.dirname(inspect.getfile(reddit_dl_extractor)))
+        # Build the manager
+        simplePluginManager = PluginManager()
+        # Tell it the default place(s) where to find plugins
+        simplePluginManager.setPluginPlaces(extractor_paths)
+        # Load all plugins
+        simplePluginManager.collectPlugins()
+
+        for pluginInfo in simplePluginManager.getAllPlugins():
+            # Activate all loaded plugins
+            simplePluginManager.activatePluginByName(pluginInfo.name)
+            for extractor_set in pluginInfo.plugin_object.get_extractor_sets():
+                if extractor_set not in gallery_dl_extractor._cache:
+                    log.debug('extractor added', ext_set=extractor_set)
+                    gallery_dl_extractor._cache.append(extractor_set)
         Job.__init__(self, url, parent)
         self.data = []
 
@@ -46,7 +68,7 @@ def get_or_create_search_model(subreddit, sort_mode=None, disable_cache=False, p
         # processing data_children
         thread_ms = []
         for item in data_children:
-            thread_m = get_or_create_thread_model_from_json_data(item)[0]
+            thread_m = get_or_create_thread_model_from_json_data(item, session=session)[0]
             thread_ms.append(thread_m)
         m.thread_models.extend(thread_ms)
         session.add(m)
@@ -66,17 +88,19 @@ def filter_url_models(url_models):
             yield url_m
 
 
-def get_or_create_thread_model_from_json_data(json_data):
-    json_data_m, _ = models.get_or_create(models.db.session, models.JSONData, value=json_data)
-    url_m, _ = models.get_or_create(models.db.session, models.URLModel, value=json_data['data']['url'])
+def get_or_create_thread_model_from_json_data(json_data, session=None):
+    session = models.db.session if session is None else session
+    json_data_m, _ = models.get_or_create(session, models.JSONData, value=json_data)
+    url_m, _ = models.get_or_create(session, models.URLModel, value=json_data['data']['url'])
     permalink_m_value = urljoin('https://www.reddit.com', json_data['data']['permalink'])
-    permalink_m, m = models.get_or_create(models.db.session, models.URLModel, value=permalink_m_value)
+    permalink_m, m = models.get_or_create(session, models.URLModel, value=permalink_m_value)
     kwargs = {'thread_id': json_data['data']['id']}
-    m, created = models.get_or_create(models.db.session, models.ThreadModel, **kwargs)
+    m, created = models.get_or_create(session, models.ThreadModel, **kwargs)
     if created:
         m.json_data = json_data_m
         m.permalink = permalink_m
         m.url = url_m
+        session.add(m)
     return m, created
 
 
@@ -191,7 +215,11 @@ def extract_url_set_from_url_models(url_models, session=None):
             session.add_all(url_sets_from_job)
 
         for item in url_sets_from_job:
-            if item.extracted_url not in processed_url_ms and item.extracted_url:
+            add_item_to_processed_list = \
+                item.extracted_url not in processed_url_ms \
+                and item.extracted_url \
+                and item.set_type == models.MESSAGE_QUEUE
+            if add_item_to_processed_list:
                 processed_url_ms.append(item.extracted_url)
                 log.debug('added to queue', item=item.extracted_url)
                 q.put(item.extracted_url)
