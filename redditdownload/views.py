@@ -65,17 +65,40 @@ class URLView(BaseView):
             search_url = form.url.data
         kwargs = {'form': form}
         if search_url:
+            session = models.db.session
             kwargs['search_url'] = search_url
+            m = models.get_or_create(session, models.URLModel, value=search_url)[0]
             if form.extract.data:
-                pass
-            else:
-                entry = models.URLModel.query.filter_by(value=search_url).one_or_none()
-                kwargs['entry'] = entry
-                if entry is not None:
-                    kwargs['json_data_list'] = \
-                        [json.dumps(x.value, indent=2, sort_keys=True) for x in entry.json_data_list]
-                else:
-                    kwargs['json_data_list'] = None
+                res = api.extract_url_set_from_url_models([m], session=models.db.session)
+                res = list(res)
+                session.commit()
+            kwargs['entry'] = m
+            # url sets
+            kwargs['url_sets'] = m.url_sets if m.url_sets else []
+            kwargs['url_sets'].extend(m.src_url_set)
+            kwargs['url_sets'].extend(m.src_url_sets)
+            seen = set()
+            kwargs['url_sets'] = [seen.add(obj.id) or obj for obj in kwargs['url_sets'] if obj.id not in seen]
+            # kwargs['url_sets'] = list(set(kwargs['url_sets']))
+            # thread models
+            kwargs['thread_models'] = m.thread_models if m.thread_models else []
+            kwargs['thread_models'].extend(m.permalink_thread_models)
+            for url_set in kwargs['url_sets']:
+                kwargs['thread_models'].extend(url_set.thread_models)
+            seen = set()
+            kwargs['thread_models'] = \
+                [seen.add(obj.id) or obj for obj in kwargs['thread_models'] if obj.id not in seen]
+            # kwargs['thread_models'] = list(set([kwargs['thread_models']]))
+            # search models
+            kwargs['search_models'] = []
+            for thread_model in kwargs['thread_models']:
+                kwargs['search_models'].extend(thread_model.search_models)
+            seen = set()
+            kwargs['search_models'] = \
+                [seen.add(obj.id) or obj for obj in kwargs['search_models'] if obj.id not in seen]
+            # kwargs['search_models'] = list(set([kwargs['search_models']]))
+            models.db.session.add(m)
+            models.db.session.commit()
         return self.render(
             'redditdownload/url_view.html', **kwargs)
 
