@@ -25,15 +25,15 @@
     </td>
   </tr>
 </table>
-{% if json_data_list %}
+{% if entry and entry.json_data_list %}
   <h3>JSON Data</h3>
   <table class="table table-condensed table-bordered">
-  {% for json_data in json_data_list %}
-    <tr><td><pre><code class="json">{{json_data}}</code></pre></td></tr>
+  {% for json_data in entry.json_data_list %}
+    <tr><td><pre><code class="json">{{json_data.value}}</code></pre></td></tr>
   {% endfor %}
   </table>
 {% endif %}
-{% if entry and entry.url_sets %}
+{% if entry and url_sets %}
   <h3>URL Sets</h3>
   <table class="table table-condensed table-bordered">
     <tr>
@@ -41,14 +41,38 @@
       <th>Type</th>
       <th>URL</th>
     </tr>
-    {% for url_set in entry.url_sets %}
-      {{url_set_table_cells(url_set=url_set)}}
+    {% for url_set in url_sets %}
+      {{url_set_table_cells(url_set=url_set, m=entry)}}
     {% endfor %}
-    {% for url_set in entry.src_url_set %}
-      {{url_set_table_cells(url_set=url_set)}}
+  </table>
+{% endif %}
+{% if entry and thread_models %}
+  <h3>Threads</h3>
+  <table class="table table-condensed table-bordered">
+    {% for thread_model in thread_models %}
+      <tr> <th colspan="2">Thread {{thread_model.id}}</th></tr>
+      <tr> <th>URL</th> <td>{{thread_model.url.value}}</td> </tr>
+      <tr> <th>Permalink</th> <td>{{thread_model.permalink.value}}</td> </tr>
+      <tr> <th coslpan="2">JSON Data</th></tr>
+      {% for json_data in thread_model.json_data_list %}
+	<tr> <td colspan="2"><pre><code>{{json_data.json_data.value}}</code></pre></td></tr>
+      {% endfor %}
     {% endfor %}
-    {% for url_set in entry.src_url_sets %}
-      {{url_set_table_cells(url_set=url_set)}}
+  </table>
+{% endif %}
+
+{% if entry and search_models %}
+  <h3>Search history</h3>
+  <table class="table table-condensed table-bordered">
+    {% for search_model in search_models %}
+      <tr> <th colspan="2">Thread {{search_model.id}}</th></tr>
+      <tr> <th>Subreddit</th> <td>{{search_model.subreddit}}</td> </tr>
+      <tr> <th>Page</th> <td>{{search_model.page}}</td> </tr>
+      {{1/0}}
+      <tr> <th coslpan="2">JSON Data</th></tr>
+      {% for json_data in search_model.json_data_list %}
+	<tr> <td colspan="2"><pre><code>{{json_data.value}}</code></pre></td></tr>
+      {% endfor %}
     {% endfor %}
   </table>
 {% endif %}
@@ -58,17 +82,19 @@
 <a class="{{class_}}" href="{{href}}">{{text}}</a>
 {% endmacro %}
 
-{% macro url_set_table_cells(url_set)%}
+{% macro url_set_table_cells(url_set, m=none)%}
   <tr>
     <td>{{url_set.id}}</td>
     <td>{{url_set.set_type.value}}</td>
     <td>
-      {% if url_set.extracted_url %}
+      {% if url_set.url.value != m.value %}
 	<p>
 	  {{anchor_tag(url_for('urlmodel.details_view', id=url_set.url.id), 'URL ' + url_set.url.id|string)}}:
 	  {{anchor_tag(url_set.url.value, url_set.url.value)}}
 	  <a class="btn btn-default btn-xs details" href="{{url_for('u.index', u=url_set.url.value)}}">Details</a>
 	</p>
+      {% endif %}
+      {% if url_set.extracted_url and url_set.extracted_url.value != m.value %}
 	<p>
 	  {{anchor_tag(url_for('urlmodel.details_view', id=url_set.extracted_url.id), 'EURL ' + url_set.extracted_url.id|string)}}:
 	  {{anchor_tag(url_set.extracted_url.value, url_set.extracted_url.value)}}
