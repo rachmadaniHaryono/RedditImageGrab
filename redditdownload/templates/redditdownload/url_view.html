@@ -118,6 +118,7 @@
     <tr>
       <th>JSON Table</th>
       <td colspan="2"><table class="table table-condensed table-bordered">
+	{% if url_set.json_data.value is mapping %}
 	  {% for key, value in url_set.json_data.value.items() %}
 	    {% if value is not none and value != ''%}
 	      {% if value is mapping %}
@@ -135,6 +136,17 @@
 	      {% endif %}
 	    {% endif %}
 	  {% endfor %}
+	{% else %}
+	  {% for item in url_set.json_data.value %}
+	    {% if item is mapping %}
+	      <table class="table table-condensed table-bordered">
+		{% for key, value in item.items() %}
+		  <tr><th>{{key}}</th><td><a href="#" class='tag-json-{{key}}'>{{value}}</a></td></tr>
+		{% endfor %}
+	      </table>
+	    {% endif %}
+	  {% endfor %}
+	{% endif %}
       </table></td>
     </tr>
   {% endif %}
