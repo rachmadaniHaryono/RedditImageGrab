@@ -91,6 +91,8 @@ setup_kwargs = dict(
         'lxml>=3.6.4',
         'requests>=2.11.1',
         'structlog>=17.2.0',
+        # required by server but used also on testing.
+        'Yapsy>=1.11.223',
     ],
     tests_require=TESTS_REQUIRE,
     cmdclass={'test': Tox},
